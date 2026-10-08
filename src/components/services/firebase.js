@@ -1,13 +1,17 @@
+//
+
 import firebase from "firebase/compat/app";
 import "firebase/compat/firestore";
+import "firebase/compat/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA_YewrY00DGHu-biED3r1QK72Ez2KRn5Q",
-  authDomain: "skillhub-ec2ce.firebaseapp.com",
-  projectId: "skillhub-ec2ce",
-  storageBucket: "skillhub-ec2ce.firebasestorage.app",
-  messagingSenderId: "967612318769",
-  appId: "1:967612318769:web:a9ba65865bdf26a2d28110",
+  apiKey: "AIzaSyC2_NbwxfyPCdcMuibYM1ToR56ELZG8nj8",
+  authDomain: "skillhub-bsse.firebaseapp.com",
+  projectId: "skillhub-bsse",
+  storageBucket: "skillhub-bsse.firebasestorage.app",
+  messagingSenderId: "274365808734",
+  appId: "1:274365808734:web:ac833e04020c654486b4cf",
+  measurementId: "G-FLGD9Q9885",
 };
 
 if (!firebase.apps.length) {
@@ -15,3 +19,7 @@ if (!firebase.apps.length) {
 }
 
 export const db = firebase.firestore();
+export const auth = firebase.auth();
+export const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+export default firebase;

@@ -12,6 +12,45 @@ export default function Profile({
 }) {
   const [resetConfirm, setResetConfirm] = useState(false);
 
+  // Helper to extract Google Profile or Fallback
+  const getProfileInfo = () => {
+    if (!currentUser) return { name: "Student", email: "", photo: null };
+
+    // 1. Read Google Profile stored during login
+    const saved = localStorage.getItem(`sh_profile_${currentUser}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          return {
+            name: parsed.name || "AU Student",
+            email: parsed.email || "",
+            photo: parsed.photo || null,
+          };
+        }
+      } catch (e) {
+        console.error("Error parsing profile:", e);
+      }
+    }
+
+    // 2. Check legacy usersData if present
+    if (usersData && usersData[currentUser]) {
+      return {
+        name: usersData[currentUser].name,
+        email: `${currentUser.toLowerCase()}@students.au.edu.pk`,
+        photo: null,
+      };
+    }
+
+    return {
+      name: "AU Student",
+      email: "",
+      photo: null,
+    };
+  };
+
+  const profile = getProfileInfo();
+
   const getInitials = (name) => {
     if (!name) return "ST";
     return name
@@ -82,23 +121,16 @@ export default function Profile({
       ? 100
       : Math.round(((totalXP - prevXP) / (nextXP - prevXP)) * 100);
 
-  const getStudentPassedCount = (studentId) => {
-    if (studentId === currentUser) {
-      return totalPassed;
-    }
-    if (allScoresCache && allScoresCache[studentId] !== undefined) {
-      return allScoresCache[studentId];
-    }
-    return 0;
-  };
-
   const calculateRank = () => {
-    const studentsList = Object.keys(usersData).map((id) => ({
-      id,
-      xp: getStudentPassedCount(id) * 50,
-    }));
-    studentsList.sort((a, b) => b.xp - a.xp);
-    const myIndex = studentsList.findIndex((s) => s.id === currentUser);
+    if (!allScoresCache) return "-";
+    const entries = Object.entries(allScoresCache).map(([id, data]) => {
+      const pCount =
+        typeof data === "object" ? data.passedCount || 0 : Number(data) || 0;
+      return { id, xp: pCount * 50 };
+    });
+
+    entries.sort((a, b) => b.xp - a.xp);
+    const myIndex = entries.findIndex((item) => item.id === currentUser);
     return myIndex !== -1 ? myIndex + 1 : "-";
   };
 
@@ -131,15 +163,24 @@ export default function Profile({
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-5 rounded-2xl border border-[rgba(124,92,255,0.3)] bg-gradient-to-br from-[rgba(124,92,255,0.12)] to-[rgba(47,209,139,0.04)] p-7 shadow-xl sm:flex-row">
-        <div className="flex h-20 w-20 flex-none items-center justify-center rounded-full bg-gradient-to-br from-[#7c5cff] to-[#947bff] text-2xl font-extrabold text-white shadow-lg shadow-[#7c5cff]/25">
-          {getInitials(usersData[currentUser]?.name)}
-        </div>
+        {profile.photo ? (
+          <img
+            src={profile.photo}
+            alt={profile.name}
+            className="h-20 w-20 flex-none rounded-full border-2 border-[#7c5cff] object-cover shadow-lg shadow-[#7c5cff]/25"
+          />
+        ) : (
+          <div className="flex h-20 w-20 flex-none items-center justify-center rounded-full bg-gradient-to-br from-[#7c5cff] to-[#947bff] text-2xl font-extrabold text-white shadow-lg shadow-[#7c5cff]/25">
+            {getInitials(profile.name)}
+          </div>
+        )}
+
         <div className="text-center sm:text-left space-y-1">
           <h2 className="text-2xl font-extrabold text-[#f1f0fc]">
-            {usersData[currentUser]?.name || currentUser}
+            {profile.name}
           </h2>
-          <div className="text-sm text-[#9492bf]">
-            Student ID: {currentUser}
+          <div className="text-sm font-medium text-[#9492bf]">
+            {profile.email || "Air University Verified Student"}
           </div>
           <div
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${level.cls}`}

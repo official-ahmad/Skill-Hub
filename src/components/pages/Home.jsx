@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 export default function Home({
   courses,
-  usersData,
+  usersData = {},
   currentUser,
   userProgress,
   onSelectCourse,
@@ -89,6 +89,7 @@ export default function Home({
   };
 
   const getInitials = (name) => {
+    if (!name) return "ST";
     return name
       .split(" ")
       .map((w) => w[0])
@@ -96,13 +97,30 @@ export default function Home({
       .join("");
   };
 
+  // Safe Student Name Extraction
+  const getStudentName = () => {
+    if (!currentUser) return "Student";
+    const saved = localStorage.getItem(`sh_profile_${currentUser}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name) return parsed.name;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return usersData?.[currentUser]?.name || "AU Student";
+  };
+
+  const studentDisplayName = getStudentName();
+  const totalStudentsCount = Object.keys(usersData || {}).length || 1;
+
   return (
     <div className="space-y-10">
       <section className="grid grid-cols-1 items-center gap-9 lg:grid-cols-[1.2fr_1fr]">
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#22224c] bg-[#11112b] px-3.5 py-1.5 text-xs font-bold text-[#947bff]">
-            🚀 {Object.keys(usersData).length} Enrolled Students •{" "}
-            {courses.length} Real-World Courses
+            🚀 Air University Portal • {courses.length} Real-World Courses
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-[#f1f0fc] sm:text-5xl md:leading-[1.1]">
             Learn skills.
@@ -144,7 +162,7 @@ export default function Home({
           </div>
 
           <pre className="my-4 overflow-x-auto rounded-xl bg-[#0c0c24] p-3.5 text-xs text-[#947bff]">
-            <code>{`const student = "${usersData[currentUser]?.name || "Student"}";
+            <code>{`const student = "${studentDisplayName}";
 await student.watchLesson();
 if (await student.passQuiz()) {
   unlockNextLesson(); // +50 XP
@@ -154,9 +172,9 @@ if (await student.passQuiz()) {
           <div className="grid grid-cols-3 gap-3 border-t border-[#22224c] pt-4">
             <div>
               <b className="block text-xl font-extrabold text-[#f1f0fc]">
-                {Object.keys(usersData).length}
+                Active
               </b>
-              <span className="text-xs text-[#9492bf]">Classmates</span>
+              <span className="text-xs text-[#9492bf]">Portal</span>
             </div>
             <div>
               <b className="block text-xl font-extrabold text-[#f1f0fc]">
@@ -385,8 +403,8 @@ if (await student.passQuiz()) {
             Climb the Class Leaderboard!
           </h2>
           <div className="text-sm text-white/85">
-            Watch lessons, submit quizzes, and compete with{" "}
-            {Object.keys(usersData).length - 1} fellow classmates.
+            Watch lessons, submit quizzes, and compete with fellow Air
+            University classmates.
           </div>
         </div>
 

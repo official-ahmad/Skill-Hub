@@ -10,19 +10,10 @@ import Leaderboard from "./components/pages/Leaderboard";
 import Profile from "./components/pages/Profile";
 import MyLearning from "./components/pages/MyLearning";
 import { COURSES } from "./components/data/coursesData";
+import { db } from "./components/services/firebase";
+import firebase from "firebase/compat/app";
 
 export default function App() {
-  const DEFAULT_USERS = {
-    "SH-1001": { name: "Ahmad Ali", pw: "123456" },
-    "SH-1002": { name: "Areeba", pw: "123456" },
-    "SH-1003": { name: "Hareem", pw: "123456" },
-    "SH-1004": { name: "Moiz", pw: "123456" },
-    "SH-1005": { name: "Maria", pw: "123456" },
-    "SH-1006": { name: "Minahil", pw: "123456" },
-    "SH-1007": { name: "Shahmeer", pw: "123456" },
-    "SH-1008": { name: "Yusra", pw: "123456" },
-  };
-
   const [currentUser, setCurrentUser] = useState(() => {
     return localStorage.getItem("sh_user") || null;
   });
@@ -52,10 +43,33 @@ export default function App() {
     return saved ? JSON.parse(saved) : {};
   });
 
+  const [allScoresCache, setAllScoresCache] = useState({});
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("sh_theme", theme);
   }, [theme]);
+
+  // Real-time Firestore Leaderboard sync
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsubscribe = db.collection("leaderboard").onSnapshot(
+      (snapshot) => {
+        const cache = {};
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data && data.passedCount !== undefined) {
+            cache[doc.id] = data;
+          }
+        });
+        setAllScoresCache(cache);
+      },
+      (error) => {
+        console.warn("Firebase sync notice:", error);
+      },
+    );
+    return () => unsubscribe();
+  }, [currentUser]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -67,9 +81,28 @@ export default function App() {
     setUserNotes(savedNotes ? JSON.parse(savedNotes) : {});
   }, [currentUser]);
 
-  const handleLoginSuccess = (id) => {
-    setCurrentUser(id);
-    localStorage.setItem("sh_user", id);
+  const handleLoginSuccess = (uid, userProfile) => {
+    setCurrentUser(uid);
+    localStorage.setItem("sh_user", uid);
+
+    if (userProfile) {
+      localStorage.setItem(`sh_profile_${uid}`, JSON.stringify(userProfile));
+
+      // Sync user profile to Firestore for Leaderboard display
+      db.collection("leaderboard")
+        .doc(uid)
+        .set(
+          {
+            name: userProfile.name,
+            email: userProfile.email,
+            photo: userProfile.photo || "",
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        )
+        .catch((err) => console.warn("Firestore sync error:", err));
+    }
+
     setCurrentTab("home");
   };
 
@@ -112,6 +145,23 @@ export default function App() {
     const updated = { ...userProgress, [courseId]: count };
     setUserProgress(updated);
     localStorage.setItem(`sh_prog_${currentUser}`, JSON.stringify(updated));
+
+    const totalPassed = Object.values(updated).reduce(
+      (acc, val) => acc + (Number(val) || 0),
+      0,
+    );
+
+    db.collection("leaderboard")
+      .doc(currentUser)
+      .set(
+        {
+          passedCount: totalPassed,
+          xp: totalPassed * 50,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      )
+      .catch((err) => console.warn("Firebase update notice:", err));
   };
 
   const handleSaveNote = (courseId, index, text) => {
@@ -128,6 +178,11 @@ export default function App() {
 
     setUserProgress({});
     localStorage.removeItem(`sh_prog_${currentUser}`);
+
+    db.collection("leaderboard")
+      .doc(currentUser)
+      .set({ passedCount: 0, xp: 0 }, { merge: true })
+      .catch((err) => console.warn("Firebase reset notice:", err));
   };
 
   const totalPassedVideos = Object.values(userProgress).reduce(
@@ -139,7 +194,6 @@ export default function App() {
   if (!currentUser) {
     return (
       <Login
-        usersData={DEFAULT_USERS}
         onLoginSuccess={handleLoginSuccess}
         theme={theme}
         onToggleTheme={handleToggleTheme}
@@ -155,7 +209,6 @@ export default function App() {
     <div className="min-h-screen bg-[#090919] text-[#f1f0fc]">
       <Header
         user={currentUser}
-        usersData={DEFAULT_USERS}
         totalXP={totalXP}
         currentTab={currentTab}
         onNavigate={handleNavigate}
@@ -204,7 +257,6 @@ export default function App() {
             {currentTab === "home" && (
               <Home
                 courses={COURSES}
-                usersData={DEFAULT_USERS}
                 currentUser={currentUser}
                 userProgress={userProgress}
                 onSelectCourse={handleSelectCourse}
@@ -237,17 +289,15 @@ export default function App() {
 
             {currentTab === "leaderboard" && (
               <Leaderboard
-                usersData={DEFAULT_USERS}
                 currentUser={currentUser}
                 userProgress={userProgress}
-                allScoresCache={{}}
+                allScoresCache={allScoresCache}
               />
             )}
 
             {currentTab === "dash" && (
               <MyLearning
                 courses={COURSES}
-                usersData={DEFAULT_USERS}
                 currentUser={currentUser}
                 userProgress={userProgress}
                 onSelectCourse={handleSelectCourse}
@@ -258,10 +308,9 @@ export default function App() {
             {currentTab === "profile" && (
               <Profile
                 courses={COURSES}
-                usersData={DEFAULT_USERS}
                 currentUser={currentUser}
                 userProgress={userProgress}
-                allScoresCache={{}}
+                allScoresCache={allScoresCache}
                 onSelectCourse={handleSelectCourse}
                 onResetProgress={handleResetProgress}
                 onNavigate={handleNavigate}

@@ -13,6 +13,40 @@ export default function Header({
   onLogout,
   onToggleMobileMenu,
 }) {
+  // Helper to extract student profile data (Google account info or legacy data)
+  const getProfileData = () => {
+    if (!user) return { name: "Student", photo: null };
+
+    // 1. Check local storage for Google user profile
+    const savedProfile = localStorage.getItem(`sh_profile_${user}`);
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed) {
+          return {
+            name: parsed.name || "AU Student",
+            photo: parsed.photo || null,
+          };
+        }
+      } catch (e) {
+        console.error("Error parsing user profile:", e);
+      }
+    }
+
+    // 2. Check hardcoded fallback users list
+    if (usersData && usersData[user]) {
+      return { name: usersData[user].name, photo: null };
+    }
+
+    // 3. Fallback for non-mapped strings
+    return {
+      name: user.startsWith("SH-") ? user : "AU Student",
+      photo: null,
+    };
+  };
+
+  const { name: displayName, photo: photoURL } = getProfileData();
+
   return (
     <header className="sticky top-0 z-20 flex items-center gap-4 border-b border-[#22224c] bg-[#090919]/80 px-4 py-3.5 backdrop-blur-md md:px-7">
       <button
@@ -100,9 +134,25 @@ export default function Header({
         ⚡ {totalXP} XP
       </div>
 
-      <span className="hidden font-semibold text-sm text-[#f1f0fc] sm:inline-block">
-        {usersData[user]?.name || user}
-      </span>
+      <div
+        onClick={() => onNavigate("profile")}
+        className="hidden cursor-pointer items-center gap-2 sm:flex hover:opacity-80 transition-opacity"
+      >
+        {photoURL ? (
+          <img
+            src={photoURL}
+            alt={displayName}
+            className="h-7 w-7 rounded-full border border-[#7c5cff]/50 object-cover"
+          />
+        ) : (
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#17173a] border border-[#22224c] text-xs font-bold text-[#7c5cff]">
+            {displayName.charAt(0)}
+          </div>
+        )}
+        <span className="font-semibold text-sm text-[#f1f0fc]">
+          {displayName}
+        </span>
+      </div>
 
       <button
         onClick={onToggleTheme}
