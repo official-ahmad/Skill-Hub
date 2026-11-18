@@ -14,7 +14,7 @@ export default function MaintenancePage() {
         />
         <div className="maintenance-status">
           <span className="status-dot" aria-hidden="true" />
-          Scheduled Maintenance
+           Maintenance in progress
         </div>
         <h1 id="maintenance-title">Skillhub LMS is currently upgrading</h1>
         <p>
