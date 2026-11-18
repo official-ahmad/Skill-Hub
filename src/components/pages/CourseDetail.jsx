@@ -14,7 +14,7 @@ export default function CourseDetail({ course, courses = [], userProgress = {}, 
   return <div className="space-y-7">
     <button className="text-button" onClick={onBack}><ArrowLeft size={18} strokeWidth={1.5} /> Courses</button>
     <section className="course-detail-header">
-      <div className="course-detail-icon"><CourseIcon course={course} /></div>
+      <div className="course-detail-icon"><span className="course-icon-container"><CourseIcon course={course} /></span></div>
       <div className="course-detail-info"><p className="eyebrow">{course.cat} · {levels[course.id] || "Beginner"}</p><h1 className="page-title">{course.t}</h1><p className="page-description">{course.by} · {total} lessons</p><div className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></div><p className="tabular-nums">{done} of {total} lessons complete · {percent}%</p><button className="button-primary" onClick={() => onStartCourse(course.id)}><Play size={18} strokeWidth={1.5} /> {done === 0 ? "Start course" : done >= total ? "Review course" : "Continue course"}</button></div>
     </section>
     <nav className="detail-tabs" aria-label="Course details">{["Overview", "Course content", "Instructor"].map((item) => <button key={item} className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>{item}</button>)}</nav>

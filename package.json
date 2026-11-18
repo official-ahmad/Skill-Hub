@@ -12,10 +12,13 @@
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.3.3",
-    "lucide-react": "^1.74.0",
+    "lucide-react": "^1.75.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "tailwindcss": "^4.3.3"
+    "react-hot-toast": "^2.6.1",
+    "sweetalert2": "^11.26.25",
+    "tailwindcss": "^4.3.3",
+    "toast": "^0.5.4"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",

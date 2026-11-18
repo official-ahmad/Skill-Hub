@@ -1,28 +1,16 @@
-import {
-  Atom, Braces, Code2, CodeXml, Coffee, Database, FileCode2, GitBranch,
-  Layers3, Network, PanelsTopLeft, Server, Smartphone, Terminal,
-} from "lucide-react";
+import { BookOpen, Code, Database, Globe, Terminal } from "lucide-react";
 
-const icons = {
-  js: Code2,
-  py: CodeXml,
-  html: PanelsTopLeft,
-  css: PanelsTopLeft,
-  c: Braces,
-  java: Coffee,
-  cpp: Braces,
-  sql: Database,
-  git: GitBranch,
-  react: Atom,
-  node: Server,
-  dsa: Network,
-  linux: Terminal,
-  ts: FileCode2,
-  django: Layers3,
-  flutter: Smartphone,
-};
+function getCourseIcon(course, className) {
+  const text = `${course?.title || course?.t || ""} ${course?.category || course?.cat || ""}`.toLowerCase();
+  const props = { "aria-hidden": true, className: `course-icon ${className}`, size: 18, strokeWidth: 1.5 };
+
+  if (/database|\bsql\b/.test(text)) return <Database {...props} />;
+  if (/object[- ]oriented|\boop\b|c\+\+|data structure|\bdsa\b/.test(text)) return <Terminal {...props} />;
+  if (/web development|frontend|front-end|backend|back-end|\bweb\b/.test(text)) return <Globe {...props} />;
+  if (/python|programming|\bc\b|\bjava\b/.test(text)) return <Code {...props} />;
+  return <BookOpen {...props} />;
+}
 
 export default function CourseIcon({ course, className = "" }) {
-  const Icon = icons[course?.id] || Code2;
-  return <Icon aria-hidden="true" className={`course-icon ${className}`} size={18} strokeWidth={1.5} />;
+  return getCourseIcon(course, className);
 }

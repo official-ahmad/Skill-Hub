@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowRight, Check, Clock3, Search, Trophy } from "lucide-react";
 import CourseIcon from "../CourseIcon";
+import CategoryIcon from "../CategoryIcon";
 
 export default function Home({ courses, usersData = {}, currentUser, userProfile, userProgress, onSelectCourse, onNavigate, onCategorySelect, onSearchSubmit }) {
   const [searchInput, setSearchInput] = useState("");
@@ -42,7 +43,7 @@ export default function Home({ courses, usersData = {}, currentUser, userProfile
 
     <section className="page-section">
       <div className="section-heading"><div><h2>Course categories</h2><p>Browse materials by subject.</p></div></div>
-      <div className="category-list">{categories.map((category) => <button className="category-item" key={category} onClick={() => onCategorySelect(category)}><span>{category}</span><span className="tabular-nums">{courses.filter((course) => course.cat === category).length} courses</span></button>)}</div>
+      <div className="category-list">{categories.map((category) => <button className="category-item" key={category} onClick={() => onCategorySelect(category)}><span className="category-name"><span className="category-icon"><CategoryIcon category={category} /></span>{category}</span><span className="tabular-nums">{courses.filter((course) => course.cat === category).length} courses</span></button>)}</div>
     </section>
 
     <section className="page-section">
@@ -51,8 +52,8 @@ export default function Home({ courses, usersData = {}, currentUser, userProfile
         const complete = userProgress[course.id] || 0;
         const percent = Math.round((complete / course.v.length) * 100);
         return <button className="course-card" key={course.id} onClick={() => onSelectCourse(course.id)}>
-          <span className="course-card-icon"><CourseIcon course={course} />{complete >= course.v.length && <span className="complete-mark"><Check size={18} strokeWidth={1.5} /> Complete</span>}</span>
-          <span className="course-card-body"><strong>{course.t}</strong><span>{course.by} · {course.v.length} lessons</span><span className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></span><span className="course-progress tabular-nums">{percent}% complete</span></span>
+          <span className="course-card-icon"><span className="course-icon-container"><CourseIcon course={course} /></span>{complete >= course.v.length && <span className="complete-mark"><Check size={18} strokeWidth={1.5} /> Complete</span>}</span>
+          <span className="course-card-body"><span className="course-card-meta"><span>{course.cat}</span><span className="tabular-nums">{String(course.duration || 0).toLocaleString()} min</span></span><strong>{course.t}</strong><span className="course-card-description">{course.description}</span><span className="course-card-tags">{(course.tags || []).slice(0, 3).map((tag) => <i key={tag}>{tag}</i>)}</span><span className="course-card-instructor">{course.by} · {course.v.length} lessons</span><span className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></span><span className="course-progress tabular-nums">{percent}% complete</span></span>
         </button>;
       })}</div>
     </section>

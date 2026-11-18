@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import toast, { Toaster } from "react-hot-toast";
+import Swal from "sweetalert2";
 import Header from "./components/Header";
 import MobileMenu from "./components/MobileMenu";
 import Login from "./components/pages/Login";
@@ -9,7 +11,8 @@ import CourseRoom from "./components/pages/CourseRoom";
 import Leaderboard from "./components/pages/Leaderboard";
 import Profile from "./components/pages/Profile";
 import MyLearning from "./components/pages/MyLearning";
-import { clearToken, getCourses, getLeaderboard, getMe, getProgress, getToken, migrateLegacyProgress, resetProgress, saveNote, saveProgress, saveToken, updateProfile } from "./api";
+import { clearToken, getCourses, getLeaderboard, getMe, getProgress, getToken, migrateLegacyProgress, resetProgress, saveNote, saveProgress, saveToken, updateProfile, logoutUser } from "./api";
+import AdminDashboard from "./components/pages/AdminDashboard";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -26,7 +29,7 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("sh_theme") || "light";
+    return localStorage.getItem("sh_theme") || "dark";
   });
 
   const [userProgress, setUserProgress] = useState({});
@@ -36,6 +39,13 @@ export default function App() {
   const [usersData, setUsersData] = useState({});
 
   const [allScoresCache, setAllScoresCache] = useState({});
+  const [adminSession, setAdminSession] = useState(false);
+
+  useEffect(() => {
+    const openAdmin = () => setAdminSession(true);
+    window.addEventListener("skillhub-admin-login", openAdmin);
+    return () => window.removeEventListener("skillhub-admin-login", openAdmin);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -94,16 +104,38 @@ export default function App() {
     getLeaderboard().then((entries) => { setAllScoresCache(Object.fromEntries(entries.map((entry) => [entry.id, entry]))); setUsersData(Object.fromEntries(entries.map((entry) => [entry.id, entry]))); }).catch(console.error);
 
     setCurrentTab("home");
+    toast.success(`Welcome back, ${userProfile?.name || "Student"}!`);
   };
 
   const handleLogout = () => {
-    setCurrentUser(null);
-    setProfile(null);
-    clearToken();
-    localStorage.removeItem("sh_user");
-    setSelectedCourseId(null);
-    setInCourseRoom(false);
-    setIsMobileMenuOpen(false);
+    Swal.fire({
+      title: "Are you sure you want to log out?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Log out",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      background: "#1a1a1e",
+      color: "#f2f2f4",
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#2a2a2f",
+      customClass: {
+        popup: "skillhub-swal",
+        confirmButton: "skillhub-swal-confirm",
+        cancelButton: "skillhub-swal-cancel",
+      },
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      logoutUser().catch(() => {});
+      setCurrentUser(null);
+      setProfile(null);
+      clearToken();
+      localStorage.removeItem("sh_user");
+      setSelectedCourseId(null);
+      setInCourseRoom(false);
+      setIsMobileMenuOpen(false);
+      toast.success("Logged out successfully");
+    });
   };
 
   const handleToggleTheme = () => {
@@ -165,6 +197,10 @@ export default function App() {
     0,
   );
   const totalXP = totalPassedVideos * 50;
+
+  if (adminSession) {
+    return <><Toaster position="bottom-right" toastOptions={{ duration: 3200, style: { background: "#18181b", color: "#f4f4f5", border: "1px solid rgba(255,255,255,.08)", borderRadius: "8px", fontSize: "13px" } }} /><AdminDashboard onExit={() => setAdminSession(false)} /></>;
+  }
 
   if (!currentUser) {
     return (
