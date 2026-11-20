@@ -1,6 +1,7 @@
 import CourseIcon from "../CourseIcon";
 import CategoryIcon from "../CategoryIcon";
 import { Check } from "lucide-react";
+import InstructorIdentity from "../InstructorIdentity";
 
 const levels = { js: "Beginner", py: "Beginner", html: "Beginner", css: "Beginner", c: "Beginner", java: "Intermediate", cpp: "Intermediate", sql: "Intermediate", git: "Beginner", react: "Intermediate", node: "Intermediate", dsa: "Advanced", linux: "Beginner", ts: "Intermediate", django: "Intermediate", flutter: "Intermediate" };
 
@@ -25,7 +26,7 @@ export default function CoursesCatalog({ courses, userProgress, searchQuery, sel
       const isDone = complete >= course.v.length;
       return <button className="course-card" key={course.id} onClick={() => onSelectCourse(course.id)}>
         <span className="course-card-icon"><span className="course-icon-container"><CourseIcon course={course} /></span>{isDone && <span className="complete-mark"><Check size={18} strokeWidth={1.5} /> Complete</span>}</span>
-        <span className="course-card-body"><span className="course-card-meta"><span>{course.cat}</span><span>{course.level || levels[course.id] || "Beginner"} · {String(course.duration || 0).toLocaleString()} min</span></span><strong>{course.t}</strong><span className="course-card-description">{course.description}</span><span className="course-card-tags">{(course.tags || []).slice(0, 3).map((tag) => <i key={tag}>{tag}</i>)}</span><span className="course-card-instructor">{course.by} · {course.v.length} lessons</span><span className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></span><span className="course-progress tabular-nums">{percent}% complete · {course.v.length - complete} remaining</span></span>
+        <span className="course-card-body"><span className="course-card-meta"><span>{course.cat}</span><span>{course.level || levels[course.id] || "Beginner"} · {String(course.duration || 0).toLocaleString()} min</span></span><strong>{course.t}</strong><span className="course-card-description">{course.description}</span><span className="course-card-tags">{(course.tags || []).slice(0, 3).map((tag) => <i key={tag}>{tag}</i>)}</span><InstructorIdentity course={course} compact /><span className="course-card-instructor">{course.v.length} lessons</span><span className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></span><span className="course-progress tabular-nums">{percent}% complete · {course.v.length - complete} remaining</span></span>
       </button>;
     })}</div>}
   </div>;

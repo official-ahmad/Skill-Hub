@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Check, LockKeyhole, Play, UserRound } from "lucide-react";
 import CourseIcon from "../CourseIcon";
+import InstructorIdentity from "../InstructorIdentity";
 
 const levels = { js: "Beginner", py: "Beginner", html: "Beginner", css: "Beginner", c: "Beginner", java: "Intermediate", cpp: "Intermediate", sql: "Intermediate", git: "Beginner", react: "Intermediate", node: "Intermediate", dsa: "Advanced", linux: "Beginner", ts: "Intermediate", django: "Intermediate", flutter: "Intermediate" };
 
@@ -24,6 +25,6 @@ export default function CourseDetail({ course, courses = [], userProgress = {}, 
       const isLocked = index > done;
       return <div className={`lesson-row ${isLocked ? "is-locked" : ""}`} key={`${course.id}-${index}`}><span className="lesson-state">{isDone ? <Check size={18} strokeWidth={1.5} /> : isLocked ? <LockKeyhole size={18} strokeWidth={1.5} /> : <Play size={18} strokeWidth={1.5} />}</span><span className="lesson-title"><span className="tabular-nums">{String(index + 1).padStart(2, "0")}</span>{lesson[0]}</span><span className="lesson-meta">{lesson[2]?.length ? `${lesson[2].length} questions` : "No quiz"}</span></div>;
     })}</section>}
-    {tab === "Instructor" && <section className="instructor-profile"><span className="avatar-fallback"><UserRound size={18} strokeWidth={1.5} /></span><div><h2>{course.by}</h2><p>{courses.filter((item) => item.by === course.by).length} courses in the Skillhub library</p></div></section>}
+    {tab === "Instructor" && <section className="instructor-profile"><InstructorIdentity course={course} count={courses.filter((item) => item.by === course.by).length} /></section>}
   </div>;
 }

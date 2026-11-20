@@ -1011,6 +1011,213 @@ main.mx-auto.max-w-7xl { width: min(100%, 1440px); padding: 32px 32px 48px; }
   .notification-row time { grid-column: 2; }
 }
 
+  .admin-user-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .admin-user-toolbar .admin-search { flex: 1; margin-bottom: 0; }
+  .admin-create-user select {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 8px;
+    background: #121216;
+    color: #f4f4f5;
+  }
+  .admin-create-note { margin: 0; color: #71717a; font-size: 12px; }
+
+  .category-image {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    object-fit: cover;
+  }
+  .course-image-wrap {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 8px;
+    background: #18181b;
+  }
+  .course-image-wrap .course-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .course-image-wrap .course-icon-fallback {
+    display: none;
+  }
+  .course-card-icon .course-image-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+  .course-detail-icon .course-image-wrap {
+    width: 96px;
+    height: 96px;
+    border-radius: 12px;
+  }
+  .instructor-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .instructor-avatar {
+    position: relative;
+    display: grid;
+    width: 42px;
+    height: 42px;
+    flex: none;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .10);
+    border-radius: 50%;
+    background: #18181b;
+    color: #a1a1aa;
+  }
+  .instructor-avatar img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .instructor-identity-copy {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+  }
+  .instructor-identity-copy strong {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .instructor-identity-copy small,
+  .instructor-channel-status {
+    color: #71717a;
+    font-size: 10px;
+  }
+  .instructor-channel {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 32px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 7px;
+    color: #a1a1aa;
+    font-size: 11px;
+    text-decoration: none;
+    transition: all 200ms ease-out;
+  }
+  .instructor-channel:hover {
+    border-color: rgba(255, 255, 255, .15);
+    color: #f4f4f5;
+    transform: translateY(-1px);
+  }
+  .instructor-identity.is-compact .instructor-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  .instructor-identity.is-compact .instructor-channel,
+  .instructor-identity.is-compact .instructor-channel-status {
+    display: none;
+  }
+
+  .admin-content-manager {
+    display: grid;
+    gap: 12px;
+  }
+  .manager-tabs {
+    display: flex;
+    gap: 8px;
+  }
+  .manager-tabs button {
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 8px;
+    background: #121216;
+    color: #a1a1aa;
+  }
+  .manager-tabs button.is-active {
+    border-color: rgba(16, 185, 129, .24);
+    background: rgba(16, 185, 129, .10);
+    color: #34d399;
+  }
+  .manager-tabs button span { margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .manager-form,
+  .manager-list {
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 12px;
+    background: #121216;
+  }
+  .manager-form header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .manager-form h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .manager-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .manager-fields label {
+    display: grid;
+    gap: 6px;
+    color: #a1a1aa;
+    font-size: 12px;
+  }
+  .manager-fields input,
+  .manager-fields textarea {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 10px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 8px;
+    background: #18181b;
+    color: #f4f4f5;
+  }
+  .manager-fields textarea { min-height: 72px; resize: vertical; }
+  .manager-wide { grid-column: 1 / -1; }
+  .manager-json { min-height: 180px !important; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .manager-check { display: flex !important; grid-column: 1 / -1; align-items: center; flex-direction: row; }
+  .manager-check input { width: 16px; min-height: 16px; }
+  .manager-list { display: grid; gap: 8px; }
+  .manager-list article {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+  }
+  .manager-list article > span { display: grid; }
+  .manager-list article small { color: #71717a; }
+  .manager-list article > div { display: flex; gap: 6px; }
+
+  @media (max-width: 640px) {
+    .admin-user-toolbar { align-items: stretch; flex-direction: column; }
+    .admin-user-toolbar .button-primary { width: 100%; }
+    .manager-fields { grid-template-columns: 1fr; }
+    .manager-wide,
+    .manager-check { grid-column: 1; }
+    .manager-list article { align-items: flex-start; }
+  }
+
   .brand-logo {
     width: 36px;
     height: 36px;

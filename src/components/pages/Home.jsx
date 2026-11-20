@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, Check, Clock3, Search, Trophy } from "lucide-react";
 import CourseIcon from "../CourseIcon";
 import CategoryIcon from "../CategoryIcon";
+import InstructorIdentity from "../InstructorIdentity";
 
 export default function Home({ courses, usersData = {}, currentUser, userProfile, userProgress, onSelectCourse, onNavigate, onCategorySelect, onSearchSubmit }) {
   const [searchInput, setSearchInput] = useState("");
@@ -53,14 +54,14 @@ export default function Home({ courses, usersData = {}, currentUser, userProfile
         const percent = Math.round((complete / course.v.length) * 100);
         return <button className="course-card" key={course.id} onClick={() => onSelectCourse(course.id)}>
           <span className="course-card-icon"><span className="course-icon-container"><CourseIcon course={course} /></span>{complete >= course.v.length && <span className="complete-mark"><Check size={18} strokeWidth={1.5} /> Complete</span>}</span>
-          <span className="course-card-body"><span className="course-card-meta"><span>{course.cat}</span><span className="tabular-nums">{String(course.duration || 0).toLocaleString()} min</span></span><strong>{course.t}</strong><span className="course-card-description">{course.description}</span><span className="course-card-tags">{(course.tags || []).slice(0, 3).map((tag) => <i key={tag}>{tag}</i>)}</span><span className="course-card-instructor">{course.by} · {course.v.length} lessons</span><span className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></span><span className="course-progress tabular-nums">{percent}% complete</span></span>
+          <span className="course-card-body"><span className="course-card-meta"><span>{course.cat}</span><span className="tabular-nums">{String(course.duration || 0).toLocaleString()} min</span></span><strong>{course.t}</strong><span className="course-card-description">{course.description}</span><span className="course-card-tags">{(course.tags || []).slice(0, 3).map((tag) => <i key={tag}>{tag}</i>)}</span><InstructorIdentity course={course} compact /><span className="course-card-instructor">{course.v.length} lessons</span><span className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></span><span className="course-progress tabular-nums">{percent}% complete</span></span>
         </button>;
       })}</div>
     </section>
 
     <section className="page-section">
       <div className="section-heading"><div><h2>Instructors</h2><p>People behind the course materials.</p></div></div>
-      <div className="instructor-list">{instructors.map((instructor) => <div className="instructor-item" key={instructor}><span className="avatar-fallback">{instructor.charAt(0)}</span><span>{instructor}</span><span className="muted">{courses.filter((course) => course.by === instructor).length} courses</span></div>)}</div>
+      <div className="instructor-list">{instructors.map((instructor) => <InstructorIdentity key={instructor} course={courses.find((course) => course.by === instructor)} count={courses.filter((course) => course.by === instructor).length} />)}</div>
     </section>
 
     <section className="standings-link"><div><h2>Class standings</h2><p>View completed lessons and current rankings.</p></div><button className="button-secondary" onClick={() => onNavigate("leaderboard")}>View standings <Trophy size={18} strokeWidth={1.5} /></button></section>

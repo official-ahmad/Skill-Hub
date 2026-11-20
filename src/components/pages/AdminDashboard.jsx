@@ -19,6 +19,8 @@ import {
   toggleUserSuspension,
 } from "../../api";
 import toast from "react-hot-toast";
+import { createAdminUser } from "../../api";
+import AdminContentManager from "./AdminContentManager";
 
 export default function AdminDashboard({ onExit }) {
   const [tab, setTab] = useState("overview");
@@ -35,6 +37,15 @@ export default function AdminDashboard({ onExit }) {
   const [logs, setLogs] = useState([]);
   const [replies, setReplies] = useState({});
   const [loading, setLoading] = useState(true);
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    name: "",
+    email: "",
+    accountType: "student",
+    studentId: "",
+    className: "",
+    password: "",
+  });
 
   const refresh = async () => {
     setLoading(true);
@@ -131,6 +142,22 @@ export default function AdminDashboard({ onExit }) {
     }
   };
 
+  const createUser = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const result = await createAdminUser(createUserForm);
+      setUsers((items) => [result.user, ...items]);
+      setCreateUserOpen(false);
+      setCreateUserForm({ name: "", email: "", accountType: "student", studentId: "", className: "", password: "" });
+      toast.success(result.message || "User created");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const exit = async () => {
     try {
       await adminLogout();
@@ -160,6 +187,7 @@ export default function AdminDashboard({ onExit }) {
             ["overview", "Overview", Activity],
             ["users", "User management", Users],
             ["queries", "Support center", MessageSquareText],
+            ["content", "Courses & technologies", LibraryBig],
           ].map(([id, label, Icon]) => (
             <button
               key={id}
@@ -186,6 +214,8 @@ export default function AdminDashboard({ onExit }) {
                 ? "System overview"
                 : tab === "users"
                 ? "User management"
+                : tab === "content"
+                ? "Courses & technologies"
                 : "Support center"}
             </h1>
           </div>
@@ -249,17 +279,20 @@ export default function AdminDashboard({ onExit }) {
 
         {tab === "users" && (
           <>
-            <form className="admin-search" onSubmit={handleSearch}>
-              <Search size={18} strokeWidth={1.5} />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search name, email, or student ID"
-              />
-              <button className="button-secondary" type="submit">
-                Search
-              </button>
-            </form>
+            <div className="admin-user-toolbar">
+              <form className="admin-search" onSubmit={handleSearch}>
+                <Search size={18} strokeWidth={1.5} />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search name, email, or student ID"
+                />
+                <button className="button-secondary" type="submit">
+                  Search
+                </button>
+              </form>
+              <button className="button-primary" type="button" onClick={() => setCreateUserOpen(true)}>Add user</button>
+            </div>
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
@@ -350,6 +383,8 @@ export default function AdminDashboard({ onExit }) {
           </>
         )}
 
+        {tab === "content" && <AdminContentManager />}
+
         {tab === "queries" && (
           <div className="admin-query-list">
             {queries.map((query) => (
@@ -392,6 +427,19 @@ export default function AdminDashboard({ onExit }) {
             ))}
           </div>
         )}
+        {createUserOpen && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setCreateUserOpen(false); }}>
+          <form className="admin-login-modal admin-create-user" onSubmit={createUser} role="dialog" aria-modal="true" aria-labelledby="create-user-title">
+            <div><p className="eyebrow">Direct provisioning</p><h2 id="create-user-title">Create user</h2></div>
+            <label>Full name<input required minLength={2} maxLength={120} value={createUserForm.name} onChange={(event) => setCreateUserForm((form) => ({ ...form, name: event.target.value }))} /></label>
+            <label>Email address<input required type="email" maxLength={254} value={createUserForm.email} onChange={(event) => setCreateUserForm((form) => ({ ...form, email: event.target.value }))} /></label>
+            <label>Account type<select value={createUserForm.accountType} onChange={(event) => setCreateUserForm((form) => ({ ...form, accountType: event.target.value }))}><option value="student">Student</option><option value="instructor">Instructor</option><option value="staff">Staff</option><option value="guest">Guest</option></select></label>
+            <label>Student ID<input maxLength={80} value={createUserForm.studentId} onChange={(event) => setCreateUserForm((form) => ({ ...form, studentId: event.target.value }))} /></label>
+            <label>Class / section<input maxLength={120} value={createUserForm.className} onChange={(event) => setCreateUserForm((form) => ({ ...form, className: event.target.value }))} /></label>
+            <label>Optional password<input type="password" minLength={12} autoComplete="new-password" value={createUserForm.password} onChange={(event) => setCreateUserForm((form) => ({ ...form, password: event.target.value }))} /></label>
+            <p className="admin-create-note">A welcome email is sent automatically when SMTP is configured.</p>
+            <div className="form-actions"><button className="button-secondary" type="button" onClick={() => setCreateUserOpen(false)}>Cancel</button><button className="button-primary" type="submit" disabled={loading}>Create user</button></div>
+          </form>
+        </div>}
         {loading && <div className="admin-loading">Loading...</div>}
       </main>
     </section>

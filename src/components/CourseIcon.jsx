@@ -1,4 +1,5 @@
 import { BookOpen, Code, Database, Globe, Terminal } from "lucide-react";
+import { getCourseImage } from "./data/assetMappings";
 
 function getCourseIcon(course, className) {
   const text = `${course?.title || course?.t || ""} ${course?.category || course?.cat || ""}`.toLowerCase();
@@ -12,5 +13,9 @@ function getCourseIcon(course, className) {
 }
 
 export default function CourseIcon({ course, className = "" }) {
-  return getCourseIcon(course, className);
+  const image = getCourseImage(course);
+  return <span className={`course-image-wrap ${className}`} aria-hidden="true">
+    {image && <img className="course-image" src={image} alt="" onError={(event) => { event.currentTarget.hidden = true; }} />}
+    {getCourseIcon(course, "course-icon-fallback")}
+  </span>;
 }

@@ -76,6 +76,19 @@ export const adminLogin = (adminId, password) =>
     method: "POST",
     body: JSON.stringify({ adminId, password }),
   });
+export const createAdminUser = (user) => adminApi("/users", { method: "POST", body: JSON.stringify(user) });
+export const createCourse = (course) => adminApi("/courses", { method: "POST", body: JSON.stringify(course) });
+export const updateCourse = (id, course) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(course) });
+export const deleteCourse = (id) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const getTechnologies = async () => {
+  const response = await fetch(`${API_URL}/technologies`);
+  const data = await response.json().catch(() => []);
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
+};
+export const createTechnology = (technology) => adminApi("/technologies", { method: "POST", body: JSON.stringify(technology) });
+export const updateTechnology = (id, technology) => adminApi(`/technologies/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(technology) });
+export const deleteTechnology = (id) => adminApi(`/technologies/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const getAdminOverview = () => adminApi("/overview");
 export const getAdminUsers = (search = "") =>
   adminApi(`/users${search ? `?search=${encodeURIComponent(search)}` : ""}`);
