@@ -36,7 +36,7 @@ export default function AdminDashboard({ onExit }) {
   const [replies, setReplies] = useState({});
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const refresh = async () => {
     setLoading(true);
     try {
       const [overviewData, userData, queryData] = await Promise.all([
@@ -55,7 +55,24 @@ export default function AdminDashboard({ onExit }) {
   };
 
   useEffect(() => {
-    load();
+    let active = true;
+    Promise.all([getAdminOverview(), getAdminUsers(), getAdminQueries()])
+      .then(([overviewData, userData, queryData]) => {
+        if (!active) return;
+        setOverview(overviewData);
+        setUsers(userData);
+        setQueries(queryData);
+      })
+      .catch((error) => {
+        if (active) toast.error(error.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleSearch = async (event) => {
@@ -174,7 +191,7 @@ export default function AdminDashboard({ onExit }) {
           </div>
           <button
             className="icon-button"
-            onClick={load}
+            onClick={refresh}
             aria-label="Refresh data"
           >
             <RotateCcw size={18} strokeWidth={1.5} />

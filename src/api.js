@@ -1,6 +1,12 @@
-const API_URL = (
-  import.meta.env.VITE_API_URL || "https://skillhub-api.rentify.software/api"
-).replace(/\/$/, "");
+const configuredApiUrl = String(import.meta.env.VITE_API_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+if (!configuredApiUrl) {
+  throw new Error("VITE_API_URL must be set to the Skillhub API origin.");
+}
+const API_URL = /\/api$/i.test(configuredApiUrl)
+  ? configuredApiUrl
+  : `${configuredApiUrl}/api`;
 const TOKEN_KEY = "sh_token";
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
@@ -59,6 +65,7 @@ export async function adminApi(path, options = {}) {
     credentials: "include",
   });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) localStorage.removeItem("sh_admin_token");
   if (!response.ok)
     throw new Error(data.error || `Request failed (${response.status})`);
   return data;
