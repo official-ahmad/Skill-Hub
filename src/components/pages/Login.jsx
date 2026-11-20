@@ -100,8 +100,8 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
                 Coursework, in one place.
               </h1>
               <p className="text-xs text-white/50 leading-relaxed">
-                Sign in with your university Google account to view registered
-                courses, check progress records, and access class updates.
+                Sign in with your Google account to view registered courses,
+                check progress records, and access class updates.
               </p>
             </div>
 
@@ -130,8 +130,7 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
 
             <div className="pt-4 border-t border-white/[0.06] text-center">
               <p className="text-[11px] text-white/40">
-                Access is restricted strictly to authorized university email
-                accounts.
+                Access is restricted to accounts added by an administrator.
               </p>
             </div>
           </div>
