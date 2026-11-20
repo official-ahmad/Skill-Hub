@@ -17,6 +17,8 @@ import {
   getUserLogs,
   replyToQuery,
   toggleUserSuspension,
+  updateAdminUser,
+  deleteAdminUser,
 } from "../../api";
 import toast from "react-hot-toast";
 import { createAdminUser } from "../../api";
@@ -46,6 +48,8 @@ export default function AdminDashboard({ onExit }) {
     className: "",
     password: "",
   });
+  const [editUser, setEditUser] = useState(null);
+  const [deleteUserTarget, setDeleteUserTarget] = useState(null);
 
   const refresh = async () => {
     setLoading(true);
@@ -151,6 +155,52 @@ export default function AdminDashboard({ onExit }) {
       setCreateUserOpen(false);
       setCreateUserForm({ name: "", email: "", accountType: "student", studentId: "", className: "", password: "" });
       toast.success(result.message || "User created");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditUser = (user) => {
+    setEditUser({
+      id: user._id,
+      name: user.name || "",
+      email: user.email || "",
+      accountType: user.accountType || "student",
+      studentId: user.studentId || "",
+      className: user.className || "",
+      isSuspended: Boolean(user.isSuspended),
+      password: "",
+    });
+  };
+
+  const saveEditUser = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const result = await updateAdminUser(editUser.id, editUser);
+      setUsers((items) => items.map((item) => item._id === editUser.id ? { ...item, ...result.user, _id: item._id } : item));
+      setEditUser(null);
+      toast.success("User updated");
+      await refresh();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUserTarget) return;
+    setLoading(true);
+    try {
+      await deleteAdminUser(deleteUserTarget._id);
+      setUsers((items) => items.filter((item) => item._id !== deleteUserTarget._id));
+      if (selectedUser?._id === deleteUserTarget._id) setSelectedUser(null);
+      setDeleteUserTarget(null);
+      toast.success("User permanently deleted");
+      await refresh();
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -338,6 +388,8 @@ export default function AdminDashboard({ onExit }) {
                       <td>
                         <div className="admin-actions">
                           <button onClick={() => viewLogs(user)}>Logs</button>
+                          <button onClick={() => openEditUser(user)}>Edit</button>
+                          <button className="delete" onClick={() => setDeleteUserTarget(user)}>Delete</button>
                           <button
                             className={
                               user.isSuspended ? "activate" : "suspend"
@@ -439,6 +491,26 @@ export default function AdminDashboard({ onExit }) {
             <p className="admin-create-note">A welcome email is sent automatically when SMTP is configured.</p>
             <div className="form-actions"><button className="button-secondary" type="button" onClick={() => setCreateUserOpen(false)}>Cancel</button><button className="button-primary" type="submit" disabled={loading}>Create user</button></div>
           </form>
+        </div>}
+        {editUser && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditUser(null); }}>
+          <form className="admin-login-modal admin-create-user" onSubmit={saveEditUser} role="dialog" aria-modal="true" aria-labelledby="edit-user-title">
+            <div><p className="eyebrow">User record</p><h2 id="edit-user-title">Edit user</h2></div>
+            <label>Full name<input required minLength={2} maxLength={120} value={editUser.name} onChange={(event) => setEditUser((user) => ({ ...user, name: event.target.value }))} /></label>
+            <label>Email address<input required type="email" maxLength={254} value={editUser.email} onChange={(event) => setEditUser((user) => ({ ...user, email: event.target.value }))} /></label>
+            <label>Account type<select value={editUser.accountType} onChange={(event) => setEditUser((user) => ({ ...user, accountType: event.target.value }))}><option value="student">Student</option><option value="instructor">Instructor</option><option value="staff">Staff</option><option value="guest">Guest</option></select></label>
+            <label>Student ID<input maxLength={80} value={editUser.studentId} onChange={(event) => setEditUser((user) => ({ ...user, studentId: event.target.value }))} /></label>
+            <label>Class / section<input maxLength={120} value={editUser.className} onChange={(event) => setEditUser((user) => ({ ...user, className: event.target.value }))} /></label>
+            <label>New password (leave blank to keep unchanged)<input type="password" minLength={12} autoComplete="new-password" value={editUser.password} onChange={(event) => setEditUser((user) => ({ ...user, password: event.target.value }))} /></label>
+            <label className="manager-check"><input type="checkbox" checked={editUser.isSuspended} onChange={(event) => setEditUser((user) => ({ ...user, isSuspended: event.target.checked }))} /> Suspended</label>
+            <div className="form-actions"><button className="button-secondary" type="button" onClick={() => setEditUser(null)}>Cancel</button><button className="button-primary" type="submit" disabled={loading}>Save changes</button></div>
+          </form>
+        </div>}
+        {deleteUserTarget && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteUserTarget(null); }}>
+          <section className="admin-login-modal admin-delete-user" role="alertdialog" aria-modal="true" aria-labelledby="delete-user-title">
+            <div><p className="eyebrow">Permanent action</p><h2 id="delete-user-title">Delete {deleteUserTarget.name}?</h2></div>
+            <p>This permanently removes the user and associated enrollments, progress, and activity logs.</p>
+            <div className="form-actions"><button className="button-secondary" type="button" onClick={() => setDeleteUserTarget(null)}>Cancel</button><button className="button-danger" type="button" onClick={confirmDeleteUser} disabled={loading}>Delete permanently</button></div>
+          </section>
         </div>}
         {loading && <div className="admin-loading">Loading...</div>}
       </main>

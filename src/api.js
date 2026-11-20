@@ -97,6 +97,15 @@ export const toggleUserSuspension = (id, isSuspended) =>
     method: "PATCH",
     body: JSON.stringify({ isSuspended }),
   });
+export const updateAdminUser = (id, user) =>
+  adminApi(`/users/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(user),
+  });
+export const deleteAdminUser = (id) =>
+  adminApi(`/users/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 export const getUserLogs = (id) =>
   adminApi(`/users/${encodeURIComponent(id)}/logs`);
 export const getAdminQueries = () => adminApi("/queries");

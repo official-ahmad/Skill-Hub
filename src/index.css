@@ -966,6 +966,20 @@ main.mx-auto.max-w-7xl { width: min(100%, 1440px); padding: 32px 32px 48px; }
 .admin-actions button { min-height: 32px; padding: 0 8px; border: 1px solid rgba(255, 255, 255, .08); border-radius: 7px; background: #18181b; color: #a1a1aa; cursor: pointer; }
 .admin-actions button.suspend { color: #f87171; }
 .admin-actions button.activate { color: #34d399; }
+.admin-actions button.delete { color: #f87171; }
+.admin-delete-user p { margin: 0; color: #a1a1aa; font-size: 13px; }
+.button-danger {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(248, 113, 113, .32);
+  border-radius: 8px;
+  background: rgba(248, 113, 113, .12);
+  color: #f87171;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease-out;
+}
+.button-danger:hover { border-color: rgba(248, 113, 113, .48); background: rgba(248, 113, 113, .18); }
 .audit-trail { margin-top: 12px; }
 .audit-trail > div { display: flex; align-items: center; justify-content: space-between; }
 .audit-row { display: grid; grid-template-columns: 100px 1fr auto; gap: 12px; min-height: 38px; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, .06); color: #a1a1aa; font-size: 12px; }
