@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { Moon, Sun, Shield, X } from "lucide-react";
+import toast from "react-hot-toast";
 import { adminLogin, apiLogin } from "../../api";
 
 /* Decorative weekly grid shown on the left. Purely visual (aria-hidden). */
@@ -129,8 +130,10 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
         );
       const result = await apiLogin(response.credential);
       onLoginSuccess(result.token, result.user);
+      toast.success("Signed in successfully");
     } catch (loginError) {
       setError(loginError.message || "Sign-in failed. Try again.");
+      toast.error(loginError.message || "Sign-in failed. Try again.");
     }
   };
 
@@ -146,8 +149,10 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
       );
       setAdminOpen(false);
       setAdminPassword("");
+      toast.success("Admin portal opened");
     } catch (adminLoginError) {
       setAdminError(adminLoginError.message || "Admin sign-in failed.");
+      toast.error(adminLoginError.message || "Admin sign-in failed.");
     } finally {
       setAdminLoading(false);
     }

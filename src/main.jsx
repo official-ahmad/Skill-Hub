@@ -16,7 +16,14 @@ createRoot(document.getElementById("root")).render(
       <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ""}>
         <>
           <App />
-          <Toaster position="bottom-right" toastOptions={{ duration: 3200, style: { background: "#1a1a1e", color: "#f2f2f4", border: "1px solid rgba(255,255,255,.08)", borderRadius: "8px", fontSize: "13px" } }} />
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              duration: 3200,
+              className: "skillhub-toast",
+              style: { borderRadius: "10px", fontSize: "13px" },
+            }}
+          />
         </>
       </GoogleOAuthProvider>
     )}

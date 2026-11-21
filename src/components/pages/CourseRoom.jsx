@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CircleCheck, CircleX, LockKeyhole, Play, RotateCcw, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleCheck, LockKeyhole, Play, RotateCcw, Save } from "lucide-react";
 
 const PASS_MARK = 0.6;
 
@@ -14,7 +14,6 @@ export default function CourseRoom({ course, userProgress, userNotes, onBackToDe
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizPassed, setQuizPassed] = useState(false);
   const [scorePercent, setScorePercent] = useState(0);
-  const [correctCount, setCorrectCount] = useState(0);
   const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
@@ -75,7 +74,6 @@ export default function CourseRoom({ course, userProgress, userNotes, onBackToDe
     }
     const correct = quizQuestions.reduce((sum, question, index) => sum + (userAnswers[index] === question.correctIndex ? 1 : 0), 0);
     const passed = correct / quizQuestions.length >= PASS_MARK;
-    setCorrectCount(correct);
     setScorePercent(Math.round(correct / quizQuestions.length * 100));
     setQuizPassed(passed);
     setQuizSubmitted(true);
@@ -92,26 +90,23 @@ export default function CourseRoom({ course, userProgress, userNotes, onBackToDe
     saveLessonNote.timeout = window.setTimeout(() => setSaveStatus("Saved"), 400);
   };
 
-  return <div className="player-page space-y-6">
-    <button className="text-button" onClick={onBackToDetails}><ArrowLeft size={18} strokeWidth={1.5} /> Course details</button>
-    <header className="page-heading"><div><p className="eyebrow">{course.t}</p><h1 className="page-title">{currentVideo[0]}</h1><p className="page-description tabular-nums">{completed} of {course.v.length} lessons complete · Lesson {currentIndex + 1} of {course.v.length}</p></div></header>
-    <div className="player-layout"><section className="player-main">
-      {viewState === "watch" && <><div className="video-frame"><iframe src={embedUrl} title={currentVideo[0]} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div><div className="player-controls"><button className="button-primary" onClick={startQuiz}><Check size={18} strokeWidth={1.5} /> Video finished · Take quiz</button><span>{isPlaylist ? "Watch the playlist before taking the lesson quiz." : "Watch the lesson before checking your understanding."}</span></div></>}
-
-      {viewState === "no_quiz" && <section className="surface-card state-panel"><CircleCheck size={18} strokeWidth={1.5} /><h2>Lesson recorded</h2><p>This lesson does not include a quiz.</p><button className="button-primary" onClick={() => currentIndex === course.v.length - 1 ? onNavigate("dash") : setCurrentIndex(currentIndex + 1)}>{currentIndex === course.v.length - 1 ? "My learning" : "Next lesson"}<ArrowRight size={18} strokeWidth={1.5} /></button></section>}
-
-      {viewState === "quiz" && <section className="surface-card quiz-panel"><header className="section-heading"><div><h2>Lesson quiz</h2><p>Pass mark: 60% · Completion credit: 50 XP</p></div></header>{quizQuestions.map((question, questionIndex) => <fieldset className="question-block" key={questionIndex}><legend><span className="tabular-nums">{questionIndex + 1}.</span> {question.question}</legend>{question.options.map((option, optionIndex) => <label className="answer-option" key={optionIndex}><input type="radio" name={`question-${questionIndex}`} checked={userAnswers[questionIndex] === optionIndex} disabled={quizSubmitted} onChange={() => setUserAnswers((previous) => ({ ...previous, [questionIndex]: optionIndex }))} /><span>{option}</span></label>)}</fieldset>)}{validationError && <p className="form-error" role="alert">{validationError}</p>}<button className="button-primary" onClick={submitQuiz}>Submit answers</button></section>}
-
-      {viewState === "result" && <section className="surface-card result-panel"><div className="result-status">{quizPassed ? <CircleCheck size={22} strokeWidth={1.5} /> : <CircleX size={22} strokeWidth={1.5} />}<h2>{quizPassed ? "Quiz passed" : "Quiz not passed"}</h2></div><p>{quizPassed ? currentIndex === course.v.length - 1 ? "All lessons in this course are complete." : "The next lesson is available." : "A score of 60% is required. Review the lesson and try again."}</p><strong className="result-percent tabular-nums">{scorePercent}%</strong><div className="result-stats"><div><strong className="tabular-nums">{correctCount} / {quizQuestions.length}</strong><span>Correct answers</span></div><div><strong className="tabular-nums">{quizPassed ? 50 : 0}</strong><span>XP earned</span></div></div><div className="result-actions">{quizPassed ? currentIndex === course.v.length - 1 ? <><button className="button-primary" onClick={() => onNavigate("dash")}>My learning</button><button className="button-secondary" onClick={() => onNavigate("leaderboard")}>Class standings</button></> : <><button className="button-primary" onClick={() => setCurrentIndex(currentIndex + 1)}>Next lesson <ArrowRight size={18} strokeWidth={1.5} /></button><button className="button-secondary" onClick={() => setViewState("watch")}>Review video</button></> : <><button className="button-primary" onClick={startQuiz}><RotateCcw size={18} strokeWidth={1.5} /> Retry quiz</button><button className="button-secondary" onClick={() => setViewState("watch")}>Review video</button></>}</div></section>}
-
-      <section className="surface-card notes-panel"><header className="section-heading"><div><h2>Lesson notes</h2><p>Private notes for lesson {currentIndex + 1}</p></div><span className="save-state"><Save size={18} strokeWidth={1.5} />{saveStatus}</span></header><textarea value={noteText} onChange={saveLessonNote} placeholder="Write notes for this lesson" /></section>
+  const primary = "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white";
+  const secondary = "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium dark:border-slate-700";
+  return <div className="space-y-6">
+    <button className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300" onClick={onBackToDetails}><ArrowLeft size={18} />Course details</button>
+    <header><p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600 dark:text-indigo-300">{course.t}</p><h1 className="mt-2 text-2xl font-bold">{currentVideo[0]}</h1><p className="mt-1 text-sm tabular-nums text-slate-500">{completed} of {course.v.length} lessons complete · Lesson {currentIndex + 1} of {course.v.length}</p></header>
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]"><section className="min-w-0 space-y-5">
+      {viewState === "watch" && <><div className="aspect-video overflow-hidden rounded-2xl border border-slate-200 bg-black dark:border-slate-800"><iframe className="h-full w-full" src={embedUrl} title={currentVideo[0]} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen /></div><div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center"><button className={primary} onClick={startQuiz}><Check size={18} />Video finished · Take quiz</button><span className="text-xs text-slate-500">{isPlaylist ? "Watch the playlist before taking the lesson quiz." : "Watch the lesson before checking your understanding."}</span></div></>}
+      {viewState === "no_quiz" && <section className="rounded-2xl border border-slate-200 bg-white p-5 text-center dark:border-slate-800 dark:bg-slate-900"><CircleCheck className="mx-auto text-emerald-600" /><h2 className="mt-3 font-semibold">Lesson recorded</h2><button className={`${primary} mt-4`} onClick={() => currentIndex === course.v.length - 1 ? onNavigate("dash") : setCurrentIndex(currentIndex + 1)}>{currentIndex === course.v.length - 1 ? "My learning" : "Next lesson"}<ArrowRight size={18} /></button></section>}
+      {viewState === "quiz" && <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><h2 className="font-semibold">Lesson quiz</h2><p className="text-sm text-slate-500">Pass mark: 60% · Completion credit: 50 XP</p>{quizQuestions.map((question, questionIndex) => <fieldset className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800" key={questionIndex}><legend className="font-medium"><span className="tabular-nums">{questionIndex + 1}.</span> {question.question}</legend>{question.options.map((option, optionIndex) => <label className="mt-2 flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700" key={optionIndex}><input type="radio" name={`question-${questionIndex}`} checked={userAnswers[questionIndex] === optionIndex} disabled={quizSubmitted} onChange={() => setUserAnswers((previous) => ({ ...previous, [questionIndex]: optionIndex }))} /><span>{option}</span></label>)}</fieldset>)}{validationError && <p className="mt-3 text-sm text-rose-600" role="alert">{validationError}</p>}<button className={`${primary} mt-5`} onClick={submitQuiz}>Submit answers</button></section>}
+      {viewState === "result" && <section className="rounded-2xl border border-slate-200 bg-white p-5 text-center dark:border-slate-800 dark:bg-slate-900"><h2 className="text-xl font-semibold">{quizPassed ? "Quiz passed" : "Quiz not passed"}</h2><p className="mt-2 text-sm text-slate-500">{quizPassed ? "The next lesson is available." : "A score of 60% is required."}</p><strong className="mt-4 block text-3xl tabular-nums">{scorePercent}%</strong><div className="mt-5 flex flex-wrap justify-center gap-3">{quizPassed ? <button className={primary} onClick={() => onNavigate("dash")}>My learning</button> : <button className={primary} onClick={startQuiz}><RotateCcw size={18} />Retry quiz</button>}<button className={secondary} onClick={() => setViewState("watch")}>Review video</button></div></section>}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"><header className="mb-3 flex items-center justify-between gap-3"><div><h2 className="font-semibold">Lesson notes</h2><p className="text-xs text-slate-500">Private notes for lesson {currentIndex + 1}</p></div><span className="flex items-center gap-1 text-xs text-slate-500"><Save size={16} />{saveStatus}</span></header><textarea className="min-h-32 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-950" value={noteText} onChange={saveLessonNote} placeholder="Write notes for this lesson" /></section>
     </section>
-
-    <aside className="syllabus-panel"><h2>Course content</h2><div className="syllabus-list">{course.v.map((lesson, index) => {
+    <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><h2 className="mb-3 font-semibold">Course content</h2><div className="grid gap-1">{course.v.map((lesson, index) => {
       const isDone = index < completed;
       const isLocked = index > completed;
       const isCurrent = index === currentIndex;
-      return <button key={`${course.id}-${index}`} disabled={isLocked} className={`syllabus-item ${isCurrent ? "is-current" : ""}`} onClick={() => setCurrentIndex(index)}><span className="syllabus-state">{isDone ? <Check size={18} strokeWidth={1.5} /> : isLocked ? <LockKeyhole size={18} strokeWidth={1.5} /> : <Play size={18} strokeWidth={1.5} />}</span><span><span className="tabular-nums">{String(index + 1).padStart(2, "0")}</span> {lesson[0]}</span></button>;
+      return <button key={`${course.id}-${index}`} disabled={isLocked} className={`flex min-h-11 items-center gap-2 rounded-xl px-3 text-left text-sm ${isCurrent ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300" : "text-slate-600 hover:bg-slate-50 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-800"}`} onClick={() => setCurrentIndex(index)}><span>{isDone ? <Check size={16} /> : isLocked ? <LockKeyhole size={16} /> : <Play size={16} />}</span><span className="truncate"><span className="tabular-nums">{String(index + 1).padStart(2, "0")}</span> {lesson[0]}</span></button>;
     })}</div></aside></div>
   </div>;
 }

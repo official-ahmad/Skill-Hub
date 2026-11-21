@@ -14,8 +14,8 @@ function getCourseIcon(course, className) {
 
 export default function CourseIcon({ course, className = "" }) {
   const image = getCourseImage(course);
-  return <span className={`course-image-wrap ${className}`} aria-hidden="true">
-    {image && <img className="course-image" src={image} alt="" onError={(event) => { event.currentTarget.hidden = true; }} />}
-    {getCourseIcon(course, "course-icon-fallback")}
+  return <span className={`grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 ${className}`} aria-hidden="true">
+    {image && <img className="h-9 w-9 object-contain" src={image} alt="" onError={(event) => { event.currentTarget.hidden = true; }} />}
+    {!image && getCourseIcon(course, "h-5 w-5")}
   </span>;
 }

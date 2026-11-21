@@ -1,69 +1,48 @@
 import { useState } from "react";
-import { ArrowRight, Check, Clock3, Search, Trophy } from "lucide-react";
+import { ArrowRight, Clock3, Search, Trophy } from "lucide-react";
 import CourseIcon from "../CourseIcon";
-import CategoryIcon from "../CategoryIcon";
-import InstructorIdentity from "../InstructorIdentity";
 
-export default function Home({ courses, usersData = {}, currentUser, userProfile, userProgress, onSelectCourse, onNavigate, onCategorySelect, onSearchSubmit }) {
+export default function Home({ courses, currentUser, usersData = {}, userProfile, userProgress, onSelectCourse, onNavigate, onCategorySelect, onSearchSubmit }) {
   const [searchInput, setSearchInput] = useState("");
   const categories = [...new Set(courses.map((course) => course.cat))];
   const lessonTotal = courses.reduce((sum, course) => sum + course.v.length, 0);
   const completedTotal = Object.values(userProgress || {}).reduce((sum, count) => sum + Number(count || 0), 0);
   const lastWatched = courses.find((course) => (userProgress[course.id] || 0) > 0 && (userProgress[course.id] || 0) < course.v.length);
-  const instructors = [...new Set(courses.map((course) => course.by))];
   const name = userProfile?.name || usersData[currentUser]?.name || "Student";
-  const submitSearch = () => onSearchSubmit(searchInput);
 
-  return <div className="space-y-10">
-    <section className="home-intro">
-      <div>
-        <p className="eyebrow">Air University · Student course portal</p>
-        <h1 className="page-title">Courses for the class</h1>
-        <p className="page-description">Course materials, lesson notes, and class progress in one place.</p>
-        <form className="home-search" onSubmit={(event) => { event.preventDefault(); submitSearch(); }}>
-          <Search size={18} strokeWidth={1.5} />
-          <input aria-label="Search courses" placeholder="Search courses" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
-          <button className="button-primary" type="submit">Search</button>
-        </form>
-      </div>
-      <section className="overview-card" aria-label="Learning overview">
-        <div><span className="section-label">Student</span><strong>{name}</strong></div>
-        <div className="overview-stats tabular-nums">
-          <div><strong>{courses.length}</strong><span>Courses</span></div>
-          <div><strong>{lessonTotal}</strong><span>Lessons</span></div>
-          <div><strong>{completedTotal}</strong><span>Completed</span></div>
+  return (
+    <div className="space-y-8">
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Skillhub · Student course portal</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Courses for the class</h1>
+          <p className="mt-2 text-slate-600 dark:text-slate-300">Course materials, lesson notes, and class progress in one place.</p>
+          <form className="mt-5 flex max-w-xl gap-2" onSubmit={(event) => { event.preventDefault(); onSearchSubmit(searchInput); }}>
+            <label className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <Search size={18} className="shrink-0 text-slate-400" /><input className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-900 outline-none dark:text-white" aria-label="Search courses" placeholder="Search courses" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
+            </label>
+            <button className="h-12 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20" type="submit">Search</button>
+          </form>
         </div>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs text-slate-500 dark:text-slate-400">Student</p><strong className="mt-1 block truncate">{name}</strong>
+          <div className="mt-4 grid grid-cols-3 gap-3 text-center"><div><strong className="block text-xl tabular-nums">{courses.length}</strong><small className="text-slate-500">Courses</small></div><div><strong className="block text-xl tabular-nums">{lessonTotal}</strong><small className="text-slate-500">Lessons</small></div><div><strong className="block text-xl tabular-nums">{completedTotal}</strong><small className="text-slate-500">Complete</small></div></div>
+        </section>
       </section>
-    </section>
 
-    {lastWatched && <button className="continue-card" onClick={() => onSelectCourse(lastWatched.id)}>
-      <span className="continue-icon"><CourseIcon course={lastWatched} /></span>
-      <span className="continue-copy"><span className="section-label"><Clock3 size={18} strokeWidth={1.5} /> Continue learning</span><strong>{lastWatched.t}</strong><span>Lesson <span className="tabular-nums">{userProgress[lastWatched.id] + 1}</span> of <span className="tabular-nums">{lastWatched.v.length}</span></span></span>
-      <span className="continue-action">Open course <ArrowRight size={18} strokeWidth={1.5} /></span>
-    </button>}
+      {lastWatched && (
+        <button className="flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900" onClick={() => onSelectCourse(lastWatched.id)}>
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300"><CourseIcon course={lastWatched} /></span>
+          <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-xs text-slate-500"><Clock3 size={14} />Continue learning</span><strong className="mt-1 block truncate text-sm">{lastWatched.t}</strong></span>
+          <ArrowRight className="shrink-0 text-slate-400" size={18} />
+        </button>
+      )}
 
-    <section className="page-section">
-      <div className="section-heading"><div><h2>Course categories</h2><p>Browse materials by subject.</p></div></div>
-      <div className="category-list">{categories.map((category) => <button className="category-item" key={category} onClick={() => onCategorySelect(category)}><span className="category-name"><span className="category-icon"><CategoryIcon category={category} /></span>{category}</span><span className="tabular-nums">{courses.filter((course) => course.cat === category).length} courses</span></button>)}</div>
-    </section>
+      <section className="space-y-4"><div><h2 className="text-lg font-semibold">Course categories</h2><p className="text-sm text-slate-500">Browse materials by subject.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{categories.map((category) => <button key={category} className="flex min-h-16 items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900" onClick={() => onCategorySelect(category)}><span className="font-medium">{category}</span><span className="text-xs tabular-nums text-slate-500">{courses.filter((course) => course.cat === category).length} courses</span></button>)}</div></section>
 
-    <section className="page-section">
-      <div className="section-heading"><div><h2>Courses</h2><p>{courses.length} courses · {lessonTotal} lessons</p></div><button className="text-button" onClick={() => onCategorySelect("All")}>View all <ArrowRight size={18} strokeWidth={1.5} /></button></div>
-      <div className="course-grid">{courses.slice(0, 8).map((course) => {
-        const complete = userProgress[course.id] || 0;
-        const percent = Math.round((complete / course.v.length) * 100);
-        return <button className="course-card" key={course.id} onClick={() => onSelectCourse(course.id)}>
-          <span className="course-card-icon"><span className="course-icon-container"><CourseIcon course={course} /></span>{complete >= course.v.length && <span className="complete-mark"><Check size={18} strokeWidth={1.5} /> Complete</span>}</span>
-          <span className="course-card-body"><span className="course-card-meta"><span>{course.cat}</span><span className="tabular-nums">{String(course.duration || 0).toLocaleString()} min</span></span><strong>{course.t}</strong><span className="course-card-description">{course.description}</span><span className="course-card-tags">{(course.tags || []).slice(0, 3).map((tag) => <i key={tag}>{tag}</i>)}</span><InstructorIdentity course={course} compact /><span className="course-card-instructor">{course.v.length} lessons</span><span className="progress-track"><span className="progress-fill" style={{ width: `${percent}%` }} /></span><span className="course-progress tabular-nums">{percent}% complete</span></span>
-        </button>;
-      })}</div>
-    </section>
+      <section className="space-y-4"><div className="flex items-end justify-between gap-4"><div><h2 className="text-lg font-semibold">Courses</h2><p className="text-sm text-slate-500">{courses.length} courses · {lessonTotal} lessons</p></div><button className="flex items-center gap-2 text-sm font-medium text-indigo-600" onClick={() => onCategorySelect("All")}>View all <ArrowRight size={16} /></button></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{courses.slice(0, 9).map((course) => { const done = userProgress[course.id] || 0; const percent = course.v.length ? Math.round(done / course.v.length * 100) : 0; return <button key={course.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900" onClick={() => onSelectCourse(course.id)}><div className="flex h-20 items-center px-5 bg-gradient-to-br from-indigo-50 via-white to-slate-50 dark:from-indigo-500/10 dark:via-slate-900 dark:to-slate-900"><CourseIcon course={course} /></div><div className="p-4"><div className="flex items-center justify-between text-xs text-slate-500"><span>{course.cat}</span><span className="tabular-nums">{course.v.length} lessons</span></div><strong className="mt-2 block min-h-11 text-base text-slate-950 dark:text-white">{course.t}</strong><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${percent}%` }} /></div><p className="mt-2 text-xs tabular-nums text-slate-500">{percent}% complete</p></div></button>; })}</div></section>
 
-    <section className="page-section">
-      <div className="section-heading"><div><h2>Instructors</h2><p>People behind the course materials.</p></div></div>
-      <div className="instructor-list">{instructors.map((instructor) => <InstructorIdentity key={instructor} course={courses.find((course) => course.by === instructor)} count={courses.filter((course) => course.by === instructor).length} />)}</div>
-    </section>
-
-    <section className="standings-link"><div><h2>Class standings</h2><p>View completed lessons and current rankings.</p></div><button className="button-secondary" onClick={() => onNavigate("leaderboard")}>View standings <Trophy size={18} strokeWidth={1.5} /></button></section>
-  </div>;
+      <section className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center"><div><h2 className="text-lg font-semibold">Class standings</h2><p className="text-sm text-slate-500">View completed lessons and current rankings.</p></div><button className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium dark:border-slate-700" onClick={() => onNavigate("leaderboard")}>View standings <Trophy size={16} /></button></section>
+    </div>
+  );
 }

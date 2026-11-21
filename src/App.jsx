@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import Header from "./components/Header";
 import MobileMenu from "./components/MobileMenu";
@@ -11,7 +11,22 @@ import CourseRoom from "./components/pages/CourseRoom";
 import Leaderboard from "./components/pages/Leaderboard";
 import Profile from "./components/pages/Profile";
 import MyLearning from "./components/pages/MyLearning";
-import { clearToken, getCourses, getLeaderboard, getMe, getProgress, getToken, migrateLegacyProgress, resetProgress, saveNote, saveProgress, saveToken, updateProfile, logoutUser } from "./api";
+import {
+  clearToken,
+  getCourses,
+  getLeaderboard,
+  getMe,
+  getProgress,
+  getToken,
+  migrateLegacyProgress,
+  resetProgress,
+  saveNote,
+  saveProgress,
+  saveToken,
+  updateProfile,
+  logoutUser,
+  getActiveAnnouncement,
+} from "./api";
 import AdminDashboard from "./components/pages/AdminDashboard";
 
 export default function App() {
@@ -40,6 +55,8 @@ export default function App() {
 
   const [allScoresCache, setAllScoresCache] = useState({});
   const [adminSession, setAdminSession] = useState(false);
+  const [announcement, setAnnouncement] = useState(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
 
   useEffect(() => {
     const openAdmin = () => setAdminSession(true);
@@ -53,31 +70,88 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    if (!currentUser) return;
     let active = true;
-    getCourses().then((items) => {
-      if (active) setCourses(items.map((course) => ({ ...course, id: course._id, t: course.title, cat: course.category, ic: course.icon, c: course.colorIndex, by: course.instructor, v: course.lessons.map((lesson) => [lesson.title, lesson.video, (lesson.questions || []).map((q) => [q.question, q.options, q.correctIndex])]) })));
-    }).catch((error) => console.error("Could not load courses:", error));
-    return () => { active = false; };
+    getActiveAnnouncement()
+      .then((data) => {
+        if (!active) return;
+        const next = data?.announcement || null;
+        setAnnouncement(next);
+        setAnnouncementDismissed(
+          next
+            ? localStorage.getItem("sh_notice_dismissed") === next._id
+            : false,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [currentUser]);
+
+  useEffect(() => {
+    let active = true;
+    getCourses()
+      .then((items) => {
+        if (active)
+          setCourses(
+            items.map((course) => ({
+              ...course,
+              id: course._id,
+              t: course.title,
+              cat: course.category,
+              ic: course.icon,
+              c: course.colorIndex,
+              by: course.instructor,
+              v: course.lessons.map((lesson) => [
+                lesson.title,
+                lesson.video,
+                (lesson.questions || []).map((q) => [
+                  q.question,
+                  q.options,
+                  q.correctIndex,
+                ]),
+              ]),
+            })),
+          );
+      })
+      .catch((error) => console.error("Could not load courses:", error));
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
     if (!getToken()) return;
     let active = true;
-    Promise.all([getMe(), getProgress(), getLeaderboard()]).then(([me, progress, leaderboard]) => {
-      if (!active) return;
-      setProfile(me.user);
-      setUserProgress(progress.progress || {});
-      setUserNotes(progress.notes || {});
-      setAllScoresCache(Object.fromEntries(leaderboard.map((entry) => [entry.id, entry])));
-      setUsersData(Object.fromEntries(leaderboard.map((entry) => [entry.id, { ...entry, name: entry.name }])));
-    }).catch((error) => {
-      console.warn("Session could not be restored:", error);
-      clearToken();
-      localStorage.removeItem("sh_user");
-      setCurrentUser(null);
-      setProfile(null);
-    });
-    return () => { active = false; };
+    Promise.all([getMe(), getProgress(), getLeaderboard()])
+      .then(([me, progress, leaderboard]) => {
+        if (!active) return;
+        setProfile(me.user);
+        setUserProgress(progress.progress || {});
+        setUserNotes(progress.notes || {});
+        setAllScoresCache(
+          Object.fromEntries(leaderboard.map((entry) => [entry.id, entry])),
+        );
+        setUsersData(
+          Object.fromEntries(
+            leaderboard.map((entry) => [
+              entry.id,
+              { ...entry, name: entry.name },
+            ]),
+          ),
+        );
+      })
+      .catch((error) => {
+        console.warn("Session could not be restored:", error);
+        clearToken();
+        localStorage.removeItem("sh_user");
+        setCurrentUser(null);
+        setProfile(null);
+      });
+    return () => {
+      active = false;
+    };
   }, [currentUser]);
 
   const handleLoginSuccess = (token, userProfile) => {
@@ -86,22 +160,46 @@ export default function App() {
     if (previousUid) {
       try {
         legacyData = {
-          progress: JSON.parse(localStorage.getItem(`sh_prog_${previousUid}`) || "{}"),
-          notes: JSON.parse(localStorage.getItem(`sh_notes_${previousUid}`) || "{}"),
+          progress: JSON.parse(
+            localStorage.getItem(`sh_prog_${previousUid}`) || "{}",
+          ),
+          notes: JSON.parse(
+            localStorage.getItem(`sh_notes_${previousUid}`) || "{}",
+          ),
         };
-      } catch (error) { console.warn("Legacy learning data could not be read:", error); }
+      } catch (error) {
+        console.warn("Legacy learning data could not be read:", error);
+      }
     }
     saveToken(token);
     setProfile(userProfile);
     const uid = userProfile._id;
     localStorage.setItem("sh_user", uid);
     setCurrentUser(uid);
-    const importData = previousUid ? migrateLegacyProgress(legacyData).catch((error) => {
-      if (!error.message.includes("already been imported")) console.warn("Legacy learning data import failed:", error);
-      return null;
-    }) : Promise.resolve(null);
-    importData.then(() => getProgress()).then((progress) => { setUserProgress(progress.progress || {}); setUserNotes(progress.notes || {}); }).catch(console.error);
-    getLeaderboard().then((entries) => { setAllScoresCache(Object.fromEntries(entries.map((entry) => [entry.id, entry]))); setUsersData(Object.fromEntries(entries.map((entry) => [entry.id, entry]))); }).catch(console.error);
+    const importData = previousUid
+      ? migrateLegacyProgress(legacyData).catch((error) => {
+          if (!error.message.includes("already been imported"))
+            console.warn("Legacy learning data import failed:", error);
+          return null;
+        })
+      : Promise.resolve(null);
+    importData
+      .then(() => getProgress())
+      .then((progress) => {
+        setUserProgress(progress.progress || {});
+        setUserNotes(progress.notes || {});
+      })
+      .catch(console.error);
+    getLeaderboard()
+      .then((entries) => {
+        setAllScoresCache(
+          Object.fromEntries(entries.map((entry) => [entry.id, entry])),
+        );
+        setUsersData(
+          Object.fromEntries(entries.map((entry) => [entry.id, entry])),
+        );
+      })
+      .catch(console.error);
 
     setCurrentTab("home");
     toast.success(`Welcome back, ${userProfile?.name || "Student"}!`);
@@ -115,10 +213,10 @@ export default function App() {
       confirmButtonText: "Log out",
       cancelButtonText: "Cancel",
       reverseButtons: true,
-      background: "#1a1a1e",
-      color: "#f2f2f4",
-      confirmButtonColor: "#10b981",
-      cancelButtonColor: "#2a2a2f",
+      background: theme === "dark" ? "#0f172a" : "#ffffff",
+      color: theme === "dark" ? "#f1f5f9" : "#0f172a",
+      confirmButtonColor: "#6366f1",
+      cancelButtonColor: theme === "dark" ? "#334155" : "#e2e8f0",
       customClass: {
         popup: "skillhub-swal",
         confirmButton: "skillhub-swal-confirm",
@@ -126,7 +224,11 @@ export default function App() {
       },
     }).then((result) => {
       if (!result.isConfirmed) return;
-      logoutUser().catch(() => {});
+      logoutUser().catch((error) =>
+        toast.error(
+          error.message || "Could not confirm logout with the server",
+        ),
+      );
       setCurrentUser(null);
       setProfile(null);
       clearToken();
@@ -168,7 +270,14 @@ export default function App() {
 
     const updated = { ...userProgress, [courseId]: count };
     setUserProgress(updated);
-    saveProgress(courseId, count).then(() => getLeaderboard()).then((entries) => setAllScoresCache(Object.fromEntries(entries.map((entry) => [entry.id, entry])))).catch((err) => console.warn("Progress sync failed:", err));
+    saveProgress(courseId, count)
+      .then(() => getLeaderboard())
+      .then((entries) =>
+        setAllScoresCache(
+          Object.fromEntries(entries.map((entry) => [entry.id, entry])),
+        ),
+      )
+      .catch((err) => console.warn("Progress sync failed:", err));
   };
 
   const handleSaveNote = (courseId, index, text) => {
@@ -177,14 +286,25 @@ export default function App() {
     const key = `${courseId}_${index}`;
     const updated = { ...userNotes, [key]: text };
     setUserNotes(updated);
-    saveNote(courseId, index, text).catch((err) => console.warn("Note sync failed:", err));
+    saveNote(courseId, index, text).catch((err) =>
+      console.warn("Note sync failed:", err),
+    );
   };
 
   const handleResetProgress = () => {
     if (!currentUser) return;
-
     setUserProgress({});
-    resetProgress().then(() => getLeaderboard()).then((entries) => setAllScoresCache(Object.fromEntries(entries.map((entry) => [entry.id, entry])))).catch(console.error);
+    resetProgress()
+      .then(() => getLeaderboard())
+      .then((entries) => {
+        setAllScoresCache(
+          Object.fromEntries(entries.map((entry) => [entry.id, entry])),
+        );
+        toast.success("Learning progress reset");
+      })
+      .catch((error) =>
+        toast.error(error.message || "Could not reset progress"),
+      );
   };
 
   const handleProfileUpdate = async (changes) => {
@@ -199,7 +319,7 @@ export default function App() {
   const totalXP = totalPassedVideos * 50;
 
   if (adminSession) {
-    return <><Toaster position="bottom-right" toastOptions={{ duration: 3200, style: { background: "#18181b", color: "#f4f4f5", border: "1px solid rgba(255,255,255,.08)", borderRadius: "8px", fontSize: "13px" } }} /><AdminDashboard onExit={() => setAdminSession(false)} /></>;
+    return <AdminDashboard onExit={() => setAdminSession(false)} />;
   }
 
   if (!currentUser) {
@@ -217,7 +337,7 @@ export default function App() {
   );
 
   return (
-    <div className="app-shell min-h-screen">
+    <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors dark:bg-slate-950 dark:text-slate-50">
       <Header
         profile={profile}
         totalXP={totalXP}
@@ -240,7 +360,24 @@ export default function App() {
         onLogout={handleLogout}
       />
 
-      <main className="mx-auto max-w-7xl">
+      {announcement && !announcementDismissed && (
+        <div className="mx-3 mt-4 grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-4 py-2 shadow-sm dark:border-indigo-500/30 dark:from-indigo-500/10 dark:to-slate-950 sm:mx-6 lg:mx-auto lg:max-w-[1380px]" role="status">
+          <strong className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Class notice</strong>
+          <span className="min-w-0 text-sm text-slate-700 dark:text-slate-200">{announcement.message}</span>
+          <button
+            type="button"
+            aria-label="Dismiss announcement"
+            onClick={() => {
+              localStorage.setItem("sh_notice_dismissed", announcement._id);
+              setAnnouncementDismissed(true);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <main className="mx-auto min-h-[calc(100vh-128px)] max-w-[1440px] px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
         {selectedCourseId ? (
           inCourseRoom ? (
             <CourseRoom
@@ -338,7 +475,7 @@ export default function App() {
           </>
         )}
       </main>
-      <footer className="app-footer">UI refined with unslop by @heydamir · CC BY 4.0</footer>
+      <footer className="px-6 py-5 text-center text-xs text-slate-400 dark:text-slate-500">Skillhub Team</footer>
     </div>
   );
 }

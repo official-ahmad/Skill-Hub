@@ -119,3 +119,14 @@ export const adminLogout = () => adminApi("/logout", { method: "POST" });
 export const sendQuery = (message) =>
   api("/queries", { method: "POST", body: JSON.stringify({ message }) });
 export const getNotifications = () => api("/queries/notifications");
+export const getUserProgress = (id) => adminApi(`/users/${encodeURIComponent(id)}/progress`);
+export const resetUserProgress = (id, courseId) => adminApi(`/users/${encodeURIComponent(id)}/progress/reset`, { method: "POST", body: JSON.stringify(courseId ? { courseId } : {}) });
+export const getUserActivity = (id) => adminApi(`/users/${encodeURIComponent(id)}/activity`);
+export const bulkImportUsers = (users) => adminApi("/users/bulk-import", { method: "POST", body: JSON.stringify({ users }) });
+export const getActiveAnnouncement = () => api("/announcements/active");
+export const getAdminAnnouncements = () => adminApi("/announcements");
+export const publishAnnouncement = (message) => adminApi("/announcements", { method: "POST", body: JSON.stringify({ message }) });
+export const deactivateAnnouncement = (id) => adminApi(`/announcements/${encodeURIComponent(id)}/deactivate`, { method: "PATCH" });
+export const deleteAnnouncement = (id) => adminApi(`/announcements/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const deleteAdminQuery = (id) => adminApi(`/queries/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const bulkDeleteAdminQueries = (ids) => adminApi("/queries/bulk-delete", { method: "POST", body: JSON.stringify({ ids }) });
