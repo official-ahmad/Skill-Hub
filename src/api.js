@@ -90,8 +90,16 @@ export const createTechnology = (technology) => adminApi("/technologies", { meth
 export const updateTechnology = (id, technology) => adminApi(`/technologies/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(technology) });
 export const deleteTechnology = (id) => adminApi(`/technologies/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const getAdminOverview = () => adminApi("/overview");
-export const getAdminUsers = (search = "") =>
-  adminApi(`/users${search ? `?search=${encodeURIComponent(search)}` : ""}`);
+export const getAdminUsers = (options = {}) => {
+  if (typeof options === "string") options = { search: options };
+  const params = new URLSearchParams();
+  const allowed = ["page", "limit", "search", "className", "accountType", "status", "sortBy", "sortDir"];
+  allowed.forEach((key) => {
+    if (options[key] !== undefined && options[key] !== "") params.set(key, String(options[key]));
+  });
+  const query = params.toString();
+  return adminApi(`/users${query ? `?${query}` : ""}`);
+};
 export const toggleUserSuspension = (id, isSuspended) =>
   adminApi(`/users/${encodeURIComponent(id)}/suspend`, {
     method: "PATCH",

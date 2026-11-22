@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
   LogOut,
@@ -212,10 +212,21 @@ export default function AdminDashboard({ onExit }) {
   const [users, setUsers] = useState([]);
   const [queries, setQueries] = useState([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [userLimit, setUserLimit] = useState(25);
+  const [userTotal, setUserTotal] = useState(0);
+  const [userTotalPages, setUserTotalPages] = useState(1);
+  const [classFilter, setClassFilter] = useState("");
+  const [accountFilter, setAccountFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState("desc");
   const [selectedUser, setSelectedUser] = useState(null);
   const [logs, setLogs] = useState([]);
   const [replies, setReplies] = useState({});
   const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState("");
   const [createUserOpen, setCreateUserOpen] = useState(false);
   const [createUserForm, setCreateUserForm] = useState(EMPTY_USER_FORM);
   const [editUser, setEditUser] = useState(null);
@@ -227,31 +238,58 @@ export default function AdminDashboard({ onExit }) {
   const [importSummary, setImportSummary] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const refresh = async () => {
+  const loadUsers = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const [overviewData, userData, queryData] = await Promise.all([
-        getAdminOverview(),
-        getAdminUsers(search),
-        getAdminQueries(),
-      ]);
-      setOverview(overviewData);
-      setUsers(userData);
-      setQueries(queryData);
+      const data = await getAdminUsers({
+        page,
+        limit: userLimit,
+        search: debouncedSearch,
+        className: classFilter,
+        accountType: accountFilter,
+        status: statusFilter,
+        sortBy,
+        sortDir,
+      });
+      setUsers(data.users || (Array.isArray(data) ? data : []));
+      setUserTotal(data.total ?? 0);
+      setUserPage(data.page ?? page);
+      setUserTotalPages(data.totalPages ?? 1);
     } catch (error) {
       toast.error(error.message);
     } finally {
       setLoading(false);
     }
+  }, [accountFilter, classFilter, debouncedSearch, sortBy, sortDir, statusFilter, userLimit]);
+
+  const refresh = async () => {
+    try {
+      const [overviewData, queryData] = await Promise.all([
+        getAdminOverview(),
+        getAdminQueries(),
+      ]);
+      setOverview(overviewData);
+      setQueries(queryData);
+      await loadUsers(userPage);
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   useEffect(() => {
     let active = true;
-    Promise.all([getAdminOverview(), getAdminUsers(), getAdminQueries()])
+    Promise.all([
+      getAdminOverview(),
+      getAdminUsers({ page: 1, limit: 25 }),
+      getAdminQueries(),
+    ])
       .then(([overviewData, userData, queryData]) => {
         if (!active) return;
         setOverview(overviewData);
-        setUsers(userData);
+        setUsers(userData.users || (Array.isArray(userData) ? userData : []));
+        setUserTotal(userData.total ?? 0);
+        setUserPage(userData.page ?? 1);
+        setUserTotalPages(userData.totalPages ?? 1);
         setQueries(queryData);
       })
       .catch((error) => {
@@ -286,16 +324,24 @@ export default function AdminDashboard({ onExit }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [activityDrawer, createUserOpen, editUser, deleteUserTarget]);
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setUserPage(1);
+      loadUsers(1);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [debouncedSearch, classFilter, accountFilter, statusFilter, sortBy, sortDir, userLimit, loadUsers]);
+
   const handleSearch = async (event) => {
     event.preventDefault();
-    setLoading(true);
-    try {
-      setUsers(await getAdminUsers(search));
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
+    setUserPage(1);
+    setDebouncedSearch(search.trim());
+    await loadUsers(1);
   };
 
   const viewLogs = async (user) => {
@@ -485,6 +531,7 @@ export default function AdminDashboard({ onExit }) {
   };
 
   const suspend = async (user) => {
+    setActionLoadingId(user._id);
     try {
       const data = await toggleUserSuspension(user._id, !user.isSuspended);
       setUsers((items) =>
@@ -501,6 +548,8 @@ export default function AdminDashboard({ onExit }) {
       );
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setActionLoadingId("");
     }
   };
 
@@ -542,7 +591,8 @@ export default function AdminDashboard({ onExit }) {
     setLoading(true);
     try {
       const result = await createAdminUser(createUserForm);
-      setUsers((items) => [result.user, ...items]);
+      setUsers((items) => userPage === 1 ? [result.user, ...items].slice(0, userLimit) : items);
+      setUserTotal((count) => count + 1);
       setCreateUserOpen(false);
       setCreateUserForm(EMPTY_USER_FORM);
       toast.success(result.message || "User created");
@@ -569,6 +619,7 @@ export default function AdminDashboard({ onExit }) {
   const saveEditUser = async (event) => {
     event.preventDefault();
     setLoading(true);
+    setActionLoadingId(editUser.id);
     try {
       const result = await updateAdminUser(editUser.id, editUser);
       setUsers((items) =>
@@ -580,30 +631,39 @@ export default function AdminDashboard({ onExit }) {
       );
       setEditUser(null);
       toast.success("User updated");
-      await refresh();
     } catch (error) {
       toast.error(error.message);
     } finally {
       setLoading(false);
+      setActionLoadingId("");
     }
   };
 
   const confirmDeleteUser = async () => {
     if (!deleteUserTarget) return;
     setLoading(true);
+    setActionLoadingId(deleteUserTarget._id);
     try {
       await deleteAdminUser(deleteUserTarget._id);
       setUsers((items) =>
         items.filter((item) => item._id !== deleteUserTarget._id),
       );
+      setUserTotal((count) => Math.max(0, count - 1));
+      if (users.length === 1 && userPage > 1) {
+        const previousPage = userPage - 1;
+        setUserPage(previousPage);
+        await loadUsers(previousPage);
+      } else if (users.length === 1) {
+        await loadUsers(userPage);
+      }
       if (selectedUser?._id === deleteUserTarget._id) setSelectedUser(null);
       setDeleteUserTarget(null);
       toast.success("User permanently deleted");
-      await refresh();
     } catch (error) {
       toast.error(error.message);
     } finally {
       setLoading(false);
+      setActionLoadingId("");
     }
   };
 
@@ -822,6 +882,14 @@ export default function AdminDashboard({ onExit }) {
               </button>
             </div>
 
+            <div className="mb-3 grid gap-2 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-2 lg:grid-cols-5">
+              <label className="grid gap-1 text-xs text-slate-500">Class<input className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-950 dark:text-white" value={classFilter} onChange={(event) => setClassFilter(event.target.value)} placeholder="Exact class name" /></label>
+              <label className="grid gap-1 text-xs text-slate-500">Account<select className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" value={accountFilter} onChange={(event) => setAccountFilter(event.target.value)}><option value="">All accounts</option><option value="student">Student</option><option value="instructor">Instructor</option><option value="staff">Staff</option><option value="guest">Guest</option></select></label>
+              <label className="grid gap-1 text-xs text-slate-500">Status<select className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
+              <label className="grid gap-1 text-xs text-slate-500">Sort<select className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" value={`${sortBy}:${sortDir}`} onChange={(event) => { const [nextSortBy, nextSortDir] = event.target.value.split(":"); setSortBy(nextSortBy); setSortDir(nextSortDir); }}><option value="createdAt:desc">Newest</option><option value="createdAt:asc">Oldest</option><option value="name:asc">Name A-Z</option><option value="name:desc">Name Z-A</option><option value="studentId:asc">Student ID</option></select></label>
+              <label className="grid gap-1 text-xs text-slate-500">Per page<select className="h-10 rounded-lg border border-slate-200 bg-slate-50 px-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-950 dark:text-white" value={userLimit} onChange={(event) => setUserLimit(Math.min(100, Number(event.target.value)))}><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></label>
+            </div>
+
             <div className="admin-table-wrap">
               <table className="admin-table" style={{ minWidth: 760 }}>
                 <thead>
@@ -872,6 +940,7 @@ export default function AdminDashboard({ onExit }) {
                           <button
                             type="button"
                             onClick={() => openEditUser(user)}
+                            disabled={actionLoadingId === user._id}
                           >
                             Edit
                           </button>
@@ -880,6 +949,7 @@ export default function AdminDashboard({ onExit }) {
                             className={
                               user.isSuspended ? "activate" : "suspend"
                             }
+                            disabled={actionLoadingId === user._id}
                             onClick={() => suspend(user)}
                           >
                             {user.isSuspended ? "Activate" : "Suspend"}
@@ -887,6 +957,7 @@ export default function AdminDashboard({ onExit }) {
                           <button
                             type="button"
                             className="delete"
+                            disabled={actionLoadingId === user._id}
                             onClick={() => setDeleteUserTarget(user)}
                           >
                             Delete
@@ -906,6 +977,41 @@ export default function AdminDashboard({ onExit }) {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mt-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+              <p className="text-xs text-slate-500">
+                {userTotal ? `${(userPage - 1) * userLimit + 1}-${Math.min(userPage * userLimit, userTotal)} of ${userTotal}` : "0 users"}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  className="button-secondary"
+                  type="button"
+                  disabled={loading || userPage <= 1}
+                  onClick={() => {
+                    const previous = userPage - 1;
+                    setUserPage(previous);
+                    loadUsers(previous);
+                  }}
+                >
+                  Previous
+                </button>
+                <span className="min-w-20 text-center text-xs tabular-nums text-slate-500">
+                  {userPage} / {userTotalPages}
+                </span>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  disabled={loading || userPage >= userTotalPages}
+                  onClick={() => {
+                    const next = userPage + 1;
+                    setUserPage(next);
+                    loadUsers(next);
+                  }}
+                >
+                  Next
+                </button>
+              </div>
             </div>
 
             {selectedUser && (
