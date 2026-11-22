@@ -27,6 +27,7 @@ import {
   logoutUser,
   getActiveAnnouncement,
   getCertificates,
+  getAdminSession,
 } from "./api";
 import AdminDashboard from "./components/pages/AdminDashboard";
 import QueriesPage from "./components/pages/QueriesPage";
@@ -66,6 +67,14 @@ export default function App() {
     const openAdmin = () => setAdminSession(true);
     window.addEventListener("skillhub-admin-login", openAdmin);
     return () => window.removeEventListener("skillhub-admin-login", openAdmin);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getAdminSession()
+      .then(() => { if (active) setAdminSession(true); })
+      .catch(() => {});
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {

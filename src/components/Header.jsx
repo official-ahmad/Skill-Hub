@@ -25,17 +25,17 @@ export default function Header({ profile, totalXP, currentTab, onNavigate, searc
 
   return (
     <header className="sticky top-0 z-40 flex min-h-16 items-center gap-2 border-b border-slate-200/80 bg-white/90 px-3 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90 sm:gap-3 sm:px-5 lg:px-8">
-      <button className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900 lg:hidden" onClick={onToggleMobileMenu} aria-label="Open navigation">
+      <button className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900 xl:hidden" onClick={onToggleMobileMenu} aria-label="Open navigation">
         <Menu size={18} />
       </button>
       <button className="flex shrink-0 items-center gap-2 font-semibold text-slate-950 dark:text-white" onClick={() => onNavigate("home")}>
         <img className="h-9 w-9 rounded-xl border border-slate-200 object-cover dark:border-slate-800" src="/images.jpg" alt="" />
         <span className="hidden sm:inline">Skillhub</span>
       </button>
-      <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex" aria-label="Main navigation">
+      <nav className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 xl:flex" aria-label="Main navigation">
         {navigation.map(([id, label, Icon]) => (
-          <button key={id} className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm transition ${currentTab === id ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"}`} onClick={() => onNavigate(id)}>
-            <Icon size={18} /><span>{label}</span>
+          <button key={id} className={`flex min-h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2 text-xs transition 2xl:px-3 2xl:text-sm ${currentTab === id ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-900"}`} onClick={() => onNavigate(id)}>
+            <Icon size={16} /><span>{label}</span>
           </button>
         ))}
       </nav>

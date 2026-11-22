@@ -76,6 +76,7 @@ export const adminLogin = (adminId, password) =>
     method: "POST",
     body: JSON.stringify({ adminId, password }),
   });
+export const getAdminSession = () => adminApi("/session");
 export const createAdminUser = (user) => adminApi("/users", { method: "POST", body: JSON.stringify(user) });
 export const createCourse = (course) => adminApi("/courses", { method: "POST", body: JSON.stringify(course) });
 export const updateCourse = (id, course) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(course) });
@@ -142,8 +143,14 @@ export const getCertificates = () => api("/certificates");
 export const getCertificateQuiz = (courseId) => api(`/certificates/quiz/${encodeURIComponent(courseId)}`);
 export const submitCertificateQuiz = (payload) =>
   api("/certificates/quiz/complete", { method: "POST", body: JSON.stringify(payload) });
-export const claimCertificate = (courseId) =>
-  api(`/certificates/claim/${encodeURIComponent(courseId)}`, { method: "POST" });
+export const requestCertificate = (courseId) =>
+  api(`/certificates/request/${encodeURIComponent(courseId)}`, { method: "POST" });
+export const getAdminCertificateRequests = (status = "pending") =>
+  adminApi(`/certificate-requests${status ? `?status=${encodeURIComponent(status)}` : ""}`);
+export const approveCertificateRequest = (id) =>
+  adminApi(`/certificate-requests/${encodeURIComponent(id)}/approve`, { method: "POST" });
+export const rejectCertificateRequest = (id) =>
+  adminApi(`/certificate-requests/${encodeURIComponent(id)}/reject`, { method: "POST" });
 export const verifyCertificate = (certificateId) =>
   fetch(`${API_URL}/certificates/verify/${encodeURIComponent(certificateId)}`)
     .then(async (response) => {

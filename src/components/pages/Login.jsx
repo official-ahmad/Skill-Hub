@@ -220,7 +220,7 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
       {/* Main split */}
       <main className="flex-1 grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-0 px-5 sm:px-8 pb-10 items-center">
         {/* Left: headline + timetable */}
-        <section className="lg:pr-16 xl:pr-24 max-w-2xl w-full mx-auto lg:mx-0 lg:ml-auto order-2 lg:order-1">
+        <section className="order-1 lg:order-1 lg:pr-16 xl:pr-24 max-w-2xl w-full mx-auto lg:mx-0 lg:ml-auto">
           <h1 className="sh-display text-3xl sm:text-4xl lg:text-5xl font-bold leading-[1.08] max-w-[18ch]">
             Learn to code, one course at a time.
           </h1>
@@ -237,7 +237,7 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
         </section>
 
         {/* Right: sign in */}
-        <section className="w-full max-w-sm mx-auto lg:mx-0 lg:mr-auto order-1 lg:order-2">
+        <section className="order-2 lg:order-2 w-full max-w-sm mx-auto lg:mx-0 lg:mr-auto">
           <div
             className="rounded-2xl p-7 sm:p-8"
             style={{
@@ -318,8 +318,7 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
       {/* Admin dialog */}
       {adminOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-          style={{ background: "rgba(8,10,16,0.6)" }}
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-md"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setAdminOpen(false);
           }}

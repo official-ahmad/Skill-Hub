@@ -12,7 +12,7 @@ const navigation = [
 export default function MobileMenu({ isOpen, onNavigate, onLogout }) {
   if (!isOpen) return null;
   return (
-    <nav className="fixed left-3 right-3 top-[72px] z-50 grid gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl dark:border-slate-800 dark:bg-slate-950 lg:hidden" aria-label="Mobile navigation">
+    <nav className="fixed left-3 right-3 top-[72px] z-50 grid max-h-[calc(100dvh-88px)] gap-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl dark:border-slate-800 dark:bg-slate-950 xl:hidden" aria-label="Mobile navigation">
       {navigation.map(([id, label, Icon]) => (
         <button key={id} className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-900" onClick={() => onNavigate(id)}>
           <Icon size={18} />{label}
