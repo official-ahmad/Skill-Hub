@@ -1,4 +1,4 @@
-import { BookOpen, House, LibraryBig, LogOut, Trophy, UserRound } from "lucide-react";
+import { BookOpen, House, LibraryBig, LogOut, Trophy, UserRound, MessageSquareText } from "lucide-react";
 
 const navigation = [
   ["home", "Home", House],
@@ -6,6 +6,7 @@ const navigation = [
   ["leaderboard", "Class standings", Trophy],
   ["dash", "My learning", BookOpen],
   ["profile", "Class profile", UserRound],
+  ["queries", "Queries", MessageSquareText],
 ];
 
 export default function MobileMenu({ isOpen, onNavigate, onLogout }) {

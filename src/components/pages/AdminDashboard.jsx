@@ -172,9 +172,9 @@ function UserFields({ values, onChange, passwordLabel, passwordRequired }) {
       <label>
         Student ID
         <input
-          maxLength={80}
-          value={values.studentId}
-          onChange={(e) => onChange({ studentId: e.target.value })}
+          readOnly
+          value={String(values.email || "").split("@")[0] || ""}
+          className="cursor-not-allowed"
         />
       </label>
       <label>
@@ -394,7 +394,7 @@ export default function AdminDashboard({ onExit }) {
             row: index + 2,
             name: String(row.name || "").trim(),
             email,
-            studentId: String(row.studentId || "").trim(),
+            studentId: email.split("@")[0].replace(/[^a-z0-9-]/gi, ""),
             className: String(row.className || "").trim(),
             accountType,
             valid:

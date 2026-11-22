@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, ChevronDown, House, LibraryBig, LogOut, Menu, Moon, Search, Sun, Trophy, UserRound } from "lucide-react";
+import { BookOpen, ChevronDown, House, LibraryBig, LogOut, Menu, Moon, Search, Sun, Trophy, UserRound, MessageSquareText } from "lucide-react";
 
 const navigation = [
   ["home", "Home", House],
@@ -7,6 +7,7 @@ const navigation = [
   ["leaderboard", "Class standings", Trophy],
   ["dash", "My learning", BookOpen],
   ["profile", "Class profile", UserRound],
+  ["queries", "Queries", MessageSquareText],
 ];
 
 export default function Header({ profile, totalXP, currentTab, onNavigate, searchQuery, onSearchChange, theme, onToggleTheme, onLogout, onToggleMobileMenu }) {

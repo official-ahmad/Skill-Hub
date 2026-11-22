@@ -130,3 +130,16 @@ export const deactivateAnnouncement = (id) => adminApi(`/announcements/${encodeU
 export const deleteAnnouncement = (id) => adminApi(`/announcements/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const deleteAdminQuery = (id) => adminApi(`/queries/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const bulkDeleteAdminQueries = (ids) => adminApi("/queries/bulk-delete", { method: "POST", body: JSON.stringify({ ids }) });
+export const getCertificates = () => api("/certificates");
+export const getCertificateQuiz = (courseId) => api(`/certificates/quiz/${encodeURIComponent(courseId)}`);
+export const submitCertificateQuiz = (payload) =>
+  api("/certificates/quiz/complete", { method: "POST", body: JSON.stringify(payload) });
+export const claimCertificate = (courseId) =>
+  api(`/certificates/claim/${encodeURIComponent(courseId)}`, { method: "POST" });
+export const verifyCertificate = (certificateId) =>
+  fetch(`${API_URL}/certificates/verify/${encodeURIComponent(certificateId)}`)
+    .then(async (response) => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Certificate not found");
+      return data;
+    });

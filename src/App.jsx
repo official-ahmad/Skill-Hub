@@ -26,8 +26,11 @@ import {
   updateProfile,
   logoutUser,
   getActiveAnnouncement,
+  getCertificates,
 } from "./api";
 import AdminDashboard from "./components/pages/AdminDashboard";
+import QueriesPage from "./components/pages/QueriesPage";
+import VerificationPage from "./components/pages/VerificationPage";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => {
@@ -57,6 +60,7 @@ export default function App() {
   const [adminSession, setAdminSession] = useState(false);
   const [announcement, setAnnouncement] = useState(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+  const [totalXPOverride, setTotalXPOverride] = useState(null);
 
   useEffect(() => {
     const openAdmin = () => setAdminSession(true);
@@ -87,6 +91,17 @@ export default function App() {
     return () => {
       active = false;
     };
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    let active = true;
+    getCertificates()
+      .then((data) => {
+        if (active) setTotalXPOverride(Number(data.xp || 0));
+      })
+      .catch(() => {});
+    return () => { active = false; };
   }, [currentUser]);
 
   useEffect(() => {
@@ -316,7 +331,10 @@ export default function App() {
     (acc, val) => acc + (Number(val) || 0),
     0,
   );
-  const totalXP = totalPassedVideos * 50;
+  const totalXP = totalXPOverride ?? totalPassedVideos * 50;
+
+  const verificationMatch = window.location.pathname.match(/^\/verify\/([^/]+)\/?$/);
+  if (verificationMatch) return <VerificationPage certificateId={decodeURIComponent(verificationMatch[1])} />;
 
   if (adminSession) {
     return <AdminDashboard onExit={() => setAdminSession(false)} />;
@@ -472,6 +490,7 @@ export default function App() {
                 onNavigate={handleNavigate}
               />
             )}
+            {currentTab === "queries" && <QueriesPage />}
           </>
         )}
       </main>
