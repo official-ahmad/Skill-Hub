@@ -28,6 +28,7 @@ import {
   getActiveAnnouncement,
   getCertificates,
   getAdminSession,
+  getCourse,
 } from "./api";
 import AdminDashboard from "./components/pages/AdminDashboard";
 import QueriesPage from "./components/pages/QueriesPage";
@@ -54,6 +55,7 @@ export default function App() {
   const [userProgress, setUserProgress] = useState({});
   const [userNotes, setUserNotes] = useState({});
   const [courses, setCourses] = useState([]);
+  const [detailedCourse, setDetailedCourse] = useState(null);
   const [profile, setProfile] = useState(null);
   const [usersData, setUsersData] = useState({});
 
@@ -127,15 +129,17 @@ export default function App() {
               ic: course.icon,
               c: course.colorIndex,
               by: course.instructor,
-              v: course.lessons.map((lesson) => [
-                lesson.title,
-                lesson.video,
-                (lesson.questions || []).map((q) => [
-                  q.question,
-                  q.options,
-                  q.correctIndex,
-                ]),
-              ]),
+              v: Array.isArray(course.lessons)
+                ? course.lessons.map((lesson) => [
+                    lesson.title,
+                    lesson.video,
+                    (lesson.questions || []).map((q) => [
+                      q.question,
+                      q.options,
+                      q.correctIndex,
+                    ]),
+                  ])
+                : [],
             })),
           );
       })
@@ -276,16 +280,45 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const loadDetailedCourse = async (courseId) => {
+    setDetailedCourse(null);
+    try {
+      const course = await getCourse(courseId);
+      setDetailedCourse({
+        ...course,
+        id: course._id,
+        t: course.title,
+        cat: course.category,
+        ic: course.icon,
+        c: course.colorIndex,
+        by: course.instructor,
+        v: (course.lessons || []).map((lesson) => [
+          lesson.title,
+          lesson.video,
+          (lesson.questions || []).map((q) => [
+            q.question,
+            q.options,
+            q.correctIndex,
+          ]),
+        ]),
+      });
+    } catch (error) {
+      toast.error(error.message || "Could not load course");
+    }
+  };
+
   const handleSelectCourse = (courseId) => {
     setSelectedCourseId(courseId);
     setInCourseRoom(false);
     setCurrentTab("courses");
+    loadDetailedCourse(courseId);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleStartCourse = (courseId) => {
     setSelectedCourseId(courseId);
     setInCourseRoom(true);
+    loadDetailedCourse(courseId);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -359,9 +392,11 @@ export default function App() {
     );
   }
 
-  const selectedCourse = courses.find(
-    (c) => String(c.id) === String(selectedCourseId),
-  );
+  const selectedCourse =
+    detailedCourse &&
+    String(detailedCourse.id) === String(selectedCourseId)
+      ? detailedCourse
+      : courses.find((c) => String(c.id) === String(selectedCourseId));
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors dark:bg-slate-950 dark:text-slate-50">

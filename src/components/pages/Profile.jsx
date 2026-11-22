@@ -23,7 +23,7 @@ export default function Profile({ courses, userProgress, onSelectCourse, onReset
     return () => { active = false; };
   }, []);
 
-  const totalLessons = courses.reduce((sum, course) => sum + course.v.length, 0);
+  const totalLessons = courses.reduce((sum, course) => sum + Number(course.lessonCount || course.v.length || 0), 0);
   const totalPassed = Object.values(userProgress || {}).reduce((sum, count) => sum + Number(count || 0), 0);
   const xp = certificateData.xp || totalPassed * 50;
 
@@ -82,7 +82,7 @@ export default function Profile({ courses, userProgress, onSelectCourse, onReset
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[
         { label: "XP earned", value: xp },
         { label: "Lessons passed", value: totalPassed },
-        { label: "Courses complete", value: courses.filter((course) => (userProgress[course.id] || 0) >= course.v.length).length },
+        { label: "Courses complete", value: courses.filter((course) => { const lessonCount = Number(course.lessonCount || course.v.length || 0); return lessonCount > 0 && (userProgress[course.id] || 0) >= lessonCount; }).length },
         { label: "Overall completion", value: `${totalLessons ? Math.round(totalPassed / totalLessons * 100) : 0}%` },
       ].map((item) => <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"><strong className="block text-2xl tabular-nums">{item.value}</strong><span className="text-xs text-slate-500">{item.label}</span></div>)}</section>
 
@@ -107,7 +107,7 @@ export default function Profile({ courses, userProgress, onSelectCourse, onReset
         })}</div> : <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-500 dark:border-slate-700">Loading certificates...</p>}
       </section>
 
-      <section className="space-y-3"><h2 className="font-semibold">Course progress</h2>{courses.map((course) => { const done = userProgress[course.id] || 0; const percent = course.v.length ? Math.round(done / course.v.length * 100) : 0; return <button key={course.id} className="grid w-full grid-cols-[minmax(0,1fr)_72px] items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-[minmax(0,1fr)_90px_minmax(120px,240px)_50px]" onClick={() => onSelectCourse(course.id)}><strong className="truncate">{course.t}</strong><span className="text-xs tabular-nums text-slate-500">{done}/{course.v.length}</span><span className="hidden h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 sm:block"><span className="block h-full rounded-full bg-indigo-600" style={{ width: `${percent}%` }}/></span><span className="text-right text-xs tabular-nums">{percent}%</span></button>; })}</section>
+      <section className="space-y-3"><h2 className="font-semibold">Course progress</h2>{courses.map((course) => { const lessonCount = Number(course.lessonCount || course.v.length || 0); const done = userProgress[course.id] || 0; const percent = lessonCount ? Math.round(done / lessonCount * 100) : 0; return <button key={course.id} className="grid w-full grid-cols-[minmax(0,1fr)_72px] items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-[minmax(0,1fr)_90px_minmax(120px,240px)_50px]" onClick={() => onSelectCourse(course.id)}><strong className="truncate">{course.t}</strong><span className="text-xs tabular-nums text-slate-500">{done}/{lessonCount}</span><span className="hidden h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800 sm:block"><span className="block h-full rounded-full bg-indigo-600" style={{ width: `${percent}%` }}/></span><span className="text-right text-xs tabular-nums">{percent}%</span></button>; })}</section>
 
       <div className="flex flex-col gap-3 sm:flex-row"><button className="flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm dark:border-slate-700" onClick={() => onNavigate("courses")}><BookOpen size={17}/>Browse courses</button><button className="flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 px-4 text-sm text-rose-600 dark:border-rose-500/30" onClick={resetProgress}><RotateCcw size={17}/>Reset progress</button></div>
 

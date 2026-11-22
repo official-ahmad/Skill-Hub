@@ -158,7 +158,6 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
     }
   };
 
-  // Close the admin dialog with Escape and focus the first field when it opens.
   useEffect(() => {
     if (!adminOpen) return undefined;
     adminIdRef.current?.focus();
@@ -217,9 +216,8 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
         </div>
       </header>
 
-      {/* Main split */}
       <main className="flex-1 grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-0 px-5 sm:px-8 pb-10 items-center">
-        {/* Left: headline + timetable */}
+      
         <section className="order-1 lg:order-1 lg:pr-16 xl:pr-24 max-w-2xl w-full mx-auto lg:mx-0 lg:ml-auto">
           <h1 className="sh-display text-3xl sm:text-4xl lg:text-5xl font-bold leading-[1.08] max-w-[18ch]">
             Learn to code, one course at a time.
@@ -236,7 +234,6 @@ export default function Login({ onLoginSuccess, theme, onToggleTheme }) {
           </div>
         </section>
 
-        {/* Right: sign in */}
         <section className="order-2 lg:order-2 w-full max-w-sm mx-auto lg:mx-0 lg:mr-auto">
           <div
             className="rounded-2xl p-7 sm:p-8"

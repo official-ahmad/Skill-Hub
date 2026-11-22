@@ -36,6 +36,8 @@ export const getMe = () => api("/auth/me");
 export const updateProfile = (profile) =>
   api("/auth/profile", { method: "PATCH", body: JSON.stringify(profile) });
 export const getCourses = () => api("/courses");
+export const getCourse = (courseId) =>
+  api(`/courses/${encodeURIComponent(courseId)}`);
 export const getProgress = () => api("/progress");
 export const migrateLegacyProgress = (data) =>
   api("/progress/migrate", { method: "POST", body: JSON.stringify(data) });
