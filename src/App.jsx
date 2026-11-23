@@ -35,9 +35,17 @@ import QueriesPage from "./components/pages/QueriesPage";
 import VerificationPage from "./components/pages/VerificationPage";
 
 export default function App() {
+  const cachedProfile = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("sh_profile") || "null");
+    } catch {
+      return null;
+    }
+  })();
   const [currentUser, setCurrentUser] = useState(() => {
     return getToken() ? localStorage.getItem("sh_user") || null : null;
   });
+  const [isHydrating, setIsHydrating] = useState(() => Boolean(getToken()));
 
   const [currentTab, setCurrentTab] = useState("home");
   const [selectedCourseId, setSelectedCourseId] = useState(null);
@@ -56,7 +64,7 @@ export default function App() {
   const [userNotes, setUserNotes] = useState({});
   const [courses, setCourses] = useState([]);
   const [detailedCourse, setDetailedCourse] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(cachedProfile);
   const [usersData, setUsersData] = useState({});
 
   const [allScoresCache, setAllScoresCache] = useState({});
@@ -69,7 +77,7 @@ export default function App() {
     const openAdmin = () => setAdminSession(true);
     window.addEventListener("skillhub-admin-login", openAdmin);
     return () => window.removeEventListener("skillhub-admin-login", openAdmin);
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     let active = true;
@@ -156,6 +164,7 @@ export default function App() {
       .then(([me, progress, leaderboard]) => {
         if (!active) return;
         setProfile(me.user);
+        localStorage.setItem("sh_profile", JSON.stringify(me.user));
         setUserProgress(progress.progress || {});
         setUserNotes(progress.notes || {});
         setAllScoresCache(
@@ -172,15 +181,21 @@ export default function App() {
       })
       .catch((error) => {
         console.warn("Session could not be restored:", error);
-        clearToken();
-        localStorage.removeItem("sh_user");
-        setCurrentUser(null);
-        setProfile(null);
+        if (error.status === 401) {
+          clearToken();
+          localStorage.removeItem("sh_user");
+          localStorage.removeItem("sh_profile");
+          setCurrentUser(null);
+          setProfile(null);
+        }
+      })
+      .finally(() => {
+        if (active) setIsHydrating(false);
       });
     return () => {
       active = false;
     };
-  }, [currentUser]);
+  }, []);
 
   const handleLoginSuccess = (token, userProfile) => {
     const previousUid = localStorage.getItem("sh_user");
@@ -201,9 +216,11 @@ export default function App() {
     }
     saveToken(token);
     setProfile(userProfile);
+    localStorage.setItem("sh_profile", JSON.stringify(userProfile));
     const uid = userProfile._id;
     localStorage.setItem("sh_user", uid);
     setCurrentUser(uid);
+    setIsHydrating(false);
     const importData = previousUid
       ? migrateLegacyProgress(legacyData).catch((error) => {
           if (!error.message.includes("already been imported"))
@@ -230,7 +247,9 @@ export default function App() {
       .catch(console.error);
 
     setCurrentTab("home");
-    toast.success(`Welcome back, ${userProfile?.name || "Student"}!`);
+    toast.success(
+      userProfile?.name ? `Welcome back, ${userProfile.name}!` : "Signed in successfully",
+    );
   };
 
   const handleLogout = () => {
@@ -261,6 +280,7 @@ export default function App() {
       setProfile(null);
       clearToken();
       localStorage.removeItem("sh_user");
+      localStorage.removeItem("sh_profile");
       setSelectedCourseId(null);
       setInCourseRoom(false);
       setIsMobileMenuOpen(false);
@@ -382,6 +402,28 @@ export default function App() {
     return <AdminDashboard onExit={() => setAdminSession(false)} />;
   }
 
+  if (isHydrating) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+        <header className="sticky top-0 z-40 h-16 border-b border-slate-200/70 bg-white/80 px-5 dark:border-slate-800/80 dark:bg-slate-950/80">
+          <div className="mx-auto flex h-full max-w-[1600px] items-center gap-3">
+            <span className="h-9 w-9 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-800" />
+            <span className="h-5 w-24 animate-pulse rounded-md bg-slate-200 dark:bg-slate-800" />
+            <span className="ml-auto h-10 w-10 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+          </div>
+        </header>
+        <main className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6">
+          <div className="h-10 w-56 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map((item) => (
+              <div key={item} className="h-52 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!currentUser) {
     return (
       <Login
@@ -402,6 +444,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors dark:bg-slate-950 dark:text-slate-50">
       <Header
         profile={profile}
+        isHydrating={isHydrating}
         totalXP={totalXP}
         currentTab={currentTab}
         onNavigate={handleNavigate}
@@ -467,6 +510,7 @@ export default function App() {
             {currentTab === "home" && (
               <Home
                 courses={courses}
+                isHydrating={isHydrating}
                 currentUser={currentUser}
                 usersData={usersData}
                 userProfile={profile}

@@ -57,6 +57,7 @@ function SearchBox({ className = "", searchQuery, onSearchChange }) {
 
 export default function Header({
   profile,
+  isHydrating = false,
   totalXP,
   currentTab,
   onNavigate,
@@ -69,8 +70,8 @@ export default function Header({
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const displayName = profile?.name || "Student";
-  const initial = displayName.charAt(0).toUpperCase();
+  const displayName = profile?.name || "";
+  const initial = displayName ? displayName.charAt(0).toUpperCase() : "";
 
   useEffect(() => {
     const onPointerDown = (event) => {
@@ -174,7 +175,9 @@ export default function Header({
               aria-haspopup="menu"
               aria-label="Account menu"
             >
-              {profile?.avatar ? (
+              {isHydrating ? (
+                <span className="h-8 w-8 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+              ) : profile?.avatar ? (
                 <img
                   className="h-8 w-8 rounded-full object-cover"
                   src={profile.avatar}
@@ -185,9 +188,13 @@ export default function Header({
                   {initial}
                 </span>
               )}
-              <span className="hidden max-w-24 truncate text-sm font-medium text-slate-700 dark:text-slate-200 lg:block">
-                {displayName}
-              </span>
+              {isHydrating ? (
+                <span className="hidden h-4 w-20 animate-pulse rounded-md bg-slate-200 dark:bg-slate-800 lg:block" />
+              ) : (
+                <span className="hidden max-w-24 truncate text-sm font-medium text-slate-700 dark:text-slate-200 lg:block">
+                  {displayName}
+                </span>
+              )}
               <ChevronDown
                 size={14}
                 className={`text-slate-400 transition-transform ${
@@ -214,9 +221,13 @@ export default function Header({
                     </span>
                   )}
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                      {displayName}
-                    </p>
+                    {isHydrating ? (
+                      <span className="h-4 w-28 animate-pulse rounded-md bg-slate-200 dark:bg-slate-800" />
+                    ) : (
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                        {displayName}
+                      </p>
+                    )}
                     <p className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                       <Zap size={12} className="fill-current" />
                       <span className="tabular-nums">{totalXP}</span> XP
