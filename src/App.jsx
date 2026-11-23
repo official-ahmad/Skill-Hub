@@ -48,8 +48,16 @@ export default function App() {
   const [isHydrating, setIsHydrating] = useState(() => Boolean(getToken()));
 
   const [currentTab, setCurrentTab] = useState("home");
-  const [selectedCourseId, setSelectedCourseId] = useState(null);
-  const [inCourseRoom, setInCourseRoom] = useState(false);
+  const initialRoom = (() => {
+    if (!getToken()) return null;
+    try {
+      return JSON.parse(localStorage.getItem("sh_active_course_room") || "null");
+    } catch {
+      return null;
+    }
+  })();
+  const [selectedCourseId, setSelectedCourseId] = useState(initialRoom?.courseId || null);
+  const [inCourseRoom, setInCourseRoom] = useState(Boolean(initialRoom?.courseId));
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All");
@@ -72,6 +80,7 @@ export default function App() {
   const [announcement, setAnnouncement] = useState(null);
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const [totalXPOverride, setTotalXPOverride] = useState(null);
+  const [statusBanner, setStatusBanner] = useState(null);
 
   useEffect(() => {
     const openAdmin = () => setAdminSession(true);
@@ -80,10 +89,16 @@ export default function App() {
   }, [currentUser]);
 
   useEffect(() => {
+    const adminToken = localStorage.getItem("sh_admin_token");
+    if (!adminToken) return;
     let active = true;
     getAdminSession()
-      .then(() => { if (active) setAdminSession(true); })
-      .catch(() => {});
+      .then(() => {
+        if (active) setAdminSession(true);
+      })
+      .catch(() => {
+        if (active) setAdminSession(false);
+      });
     return () => { active = false; };
   }, []);
 
@@ -91,6 +106,12 @@ export default function App() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("sh_theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (!statusBanner) return undefined;
+    const timeout = window.setTimeout(() => setStatusBanner(null), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [statusBanner]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -127,9 +148,8 @@ export default function App() {
     let active = true;
     getCourses()
       .then((items) => {
-        if (active)
-          setCourses(
-            items.map((course) => ({
+        if (!active) return;
+        const mapped = items.map((course) => ({
               ...course,
               id: course._id,
               t: course.title,
@@ -148,14 +168,48 @@ export default function App() {
                     ]),
                   ])
                 : [],
-            })),
-          );
+            }));
+        setCourses(mapped);
+        if (initialRoom?.courseId) {
+          const found = mapped.find((course) => course.id === initialRoom.courseId);
+          if (found) {
+            setSelectedCourseId(found.id);
+            setInCourseRoom(Boolean(initialRoom.courseId));
+            getCourse(found.id)
+              .then((course) => {
+                if (!active) return;
+                setDetailedCourse({
+                  ...course,
+                  id: course._id,
+                  t: course.title,
+                  cat: course.category,
+                  ic: course.icon,
+                  c: course.colorIndex,
+                  by: course.instructor,
+                  v: (course.lessons || []).map((lesson) => [
+                    lesson.title,
+                    lesson.video,
+                    (lesson.questions || []).map((q) => [
+                      q.question,
+                      q.options,
+                      q.correctIndex,
+                    ]),
+                  ]),
+                });
+              })
+              .catch(() => {});
+          } else {
+            localStorage.removeItem("sh_active_course_room");
+            setSelectedCourseId(null);
+            setInCourseRoom(false);
+          }
+        }
       })
       .catch((error) => console.error("Could not load courses:", error));
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialRoom?.courseId]);
 
   useEffect(() => {
     if (!getToken()) return;
@@ -247,12 +301,127 @@ export default function App() {
       .catch(console.error);
 
     setCurrentTab("home");
+    try {
+      const activeRoom = JSON.parse(
+        localStorage.getItem("sh_active_course_room") || "null",
+      );
+      const activeCourse = activeRoom
+        ? courses.find((course) => course.id === activeRoom.courseId)
+        : null;
+      if (activeRoom?.viewState === "quiz") {
+        setStatusBanner({
+          title: "Quiz pending",
+          text: `${activeCourse?.t || "Your course"} · lesson ${activeRoom.index + 1}`,
+        });
+      } else if (activeCourse) {
+        setStatusBanner({
+          title: "Learning status",
+          text: `${activeCourse.t} · lesson ${(activeRoom.index || 0) + 1}`,
+        });
+      } else {
+        setStatusBanner({
+          title: "Welcome back",
+          text: "Your learning dashboard is ready",
+        });
+      }
+    } catch {
+      setStatusBanner({
+        title: "Welcome back",
+        text: "Your learning dashboard is ready",
+      });
+    }
     toast.success(
       userProfile?.name ? `Welcome back, ${userProfile.name}!` : "Signed in successfully",
     );
   };
 
   const handleLogout = () => {
+    let activeRoom = null;
+    try {
+      activeRoom = JSON.parse(
+        localStorage.getItem("sh_active_course_room") || "null",
+      );
+    } catch {
+      activeRoom = null;
+    }
+    const roomCourse =
+      activeRoom &&
+      (detailedCourse?.id === activeRoom.courseId
+        ? detailedCourse
+        : courses.find((course) => course.id === activeRoom.courseId));
+    const roomIndex = activeRoom?.index || 0;
+    const roomCompleted = roomCourse
+      ? userProgress[roomCourse.id] || 0
+      : 0;
+    const roomHasIncompleteQuiz =
+      activeRoom?.viewState === "quiz" ||
+      activeRoom?.viewState === "result";
+    const roomHasIncompleteLesson =
+      roomCourse &&
+      activeRoom &&
+      activeRoom.viewState === "watch" &&
+      roomCompleted <= roomIndex;
+    const pendingLabel =
+      activeRoom?.viewState === "quiz"
+        ? `pending quiz for “${roomCourse?.t || "your course"}”`
+        : roomHasIncompleteLesson
+          ? `incomplete lesson ${roomIndex + 1} in “${roomCourse?.t || "your course"}”`
+          : roomHasIncompleteQuiz
+            ? `pending quiz for “${roomCourse?.t || "your course"}”`
+            : "";
+
+    const performLogout = () => {
+      logoutUser().catch((error) =>
+        toast.error(
+          error.message || "Could not confirm logout with the server",
+        ),
+      );
+      setCurrentUser(null);
+      setProfile(null);
+      clearToken();
+      localStorage.removeItem("sh_user");
+      localStorage.removeItem("sh_profile");
+      localStorage.removeItem("sh_active_course_room");
+      setSelectedCourseId(null);
+      setInCourseRoom(false);
+      setIsMobileMenuOpen(false);
+      setStatusBanner(null);
+      toast.success("Logged out successfully");
+    };
+
+    if (pendingLabel) {
+      Swal.fire({
+        title: "Incomplete learning activity",
+        text: `You have ${pendingLabel}.`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Logout anyway",
+        cancelButtonText: "Continue learning",
+        reverseButtons: true,
+        background: theme === "dark" ? "#0f172a" : "#ffffff",
+        color: theme === "dark" ? "#f1f5f9" : "#0f172a",
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#6366f1",
+        customClass: {
+          popup: "skillhub-swal",
+          confirmButton: "skillhub-swal-confirm",
+          cancelButton: "skillhub-swal-cancel",
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          performLogout();
+          return;
+        }
+        if (result.dismiss === Swal.DismissReason.cancel && activeRoom?.courseId) {
+          loadDetailedCourse(activeRoom.courseId).then(() => {
+            setSelectedCourseId(activeRoom.courseId);
+            setInCourseRoom(true);
+          });
+        }
+      });
+      return;
+    }
+
     Swal.fire({
       title: "Are you sure you want to log out?",
       icon: "question",
@@ -271,20 +440,7 @@ export default function App() {
       },
     }).then((result) => {
       if (!result.isConfirmed) return;
-      logoutUser().catch((error) =>
-        toast.error(
-          error.message || "Could not confirm logout with the server",
-        ),
-      );
-      setCurrentUser(null);
-      setProfile(null);
-      clearToken();
-      localStorage.removeItem("sh_user");
-      localStorage.removeItem("sh_profile");
-      setSelectedCourseId(null);
-      setInCourseRoom(false);
-      setIsMobileMenuOpen(false);
-      toast.success("Logged out successfully");
+      performLogout();
     });
   };
 
@@ -293,11 +449,17 @@ export default function App() {
   };
 
   const handleNavigate = (tab) => {
+    localStorage.removeItem("sh_active_course_room");
     setCurrentTab(tab);
     setSelectedCourseId(null);
     setInCourseRoom(false);
     setIsMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleBackToCourseDetails = () => {
+    localStorage.removeItem("sh_active_course_room");
+    setInCourseRoom(false);
   };
 
   const loadDetailedCourse = async (courseId) => {
@@ -328,6 +490,7 @@ export default function App() {
   };
 
   const handleSelectCourse = (courseId) => {
+    localStorage.removeItem("sh_active_course_room");
     setSelectedCourseId(courseId);
     setInCourseRoom(false);
     setCurrentTab("courses");
@@ -482,6 +645,28 @@ export default function App() {
         </div>
       )}
 
+      {statusBanner && (
+        <div
+          role="status"
+          className="fixed left-1/2 top-20 z-[70] flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-slate-950"
+        >
+          <div className="min-w-0 flex-1">
+            <strong className="block text-sm">{statusBanner.title}</strong>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {statusBanner.text}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss status"
+            onClick={() => setStatusBanner(null)}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <main className="mx-auto min-h-[calc(100vh-128px)] max-w-[1440px] px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
         {selectedCourseId ? (
           inCourseRoom ? (
@@ -491,7 +676,7 @@ export default function App() {
               userProgress={userProgress}
               userNotes={userNotes}
               totalPassed={totalPassedVideos}
-              onBackToDetails={() => setInCourseRoom(false)}
+              onBackToDetails={handleBackToCourseDetails}
               onUpdateProgress={handleUpdateProgress}
               onSaveNote={handleSaveNote}
               onNavigate={handleNavigate}

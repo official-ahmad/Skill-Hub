@@ -79,7 +79,10 @@ export const adminLogin = (adminId, password) =>
     method: "POST",
     body: JSON.stringify({ adminId, password }),
   });
-export const getAdminSession = () => adminApi("/session");
+export const getAdminSession = () => {
+  if (!localStorage.getItem("sh_admin_token")) return Promise.resolve(null);
+  return adminApi("/session");
+};
 export const createAdminUser = (user) => adminApi("/users", { method: "POST", body: JSON.stringify(user) });
 export const createCourse = (course) => adminApi("/courses", { method: "POST", body: JSON.stringify(course) });
 export const updateCourse = (id, course) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(course) });
