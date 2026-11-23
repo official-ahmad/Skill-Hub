@@ -28,6 +28,33 @@ const navigation = [
 const iconButton =
   "grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-600 transition hover:bg-slate-100 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-slate-300 dark:hover:bg-slate-800";
 
+function SearchBox({ className = "", searchQuery, onSearchChange }) {
+  return (
+    <label
+      className={`group flex h-10 items-center gap-2 rounded-full bg-slate-100 px-4 text-slate-400 ring-1 ring-transparent transition focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 dark:bg-slate-900 dark:focus-within:bg-slate-950 ${className}`}
+    >
+      <Search size={16} className="shrink-0" />
+      <input
+        className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+        aria-label="Search courses"
+        placeholder="Search courses"
+        value={searchQuery}
+        onChange={(event) => onSearchChange(event.target.value)}
+      />
+      {searchQuery && (
+        <button
+          type="button"
+          aria-label="Clear search"
+          onClick={() => onSearchChange("")}
+          className="grid h-5 w-5 place-items-center rounded-full bg-slate-300 text-white hover:bg-slate-400 dark:bg-slate-700"
+        >
+          <X size={12} />
+        </button>
+      )}
+    </label>
+  );
+}
+
 export default function Header({
   profile,
   totalXP,
@@ -60,31 +87,6 @@ export default function Header({
     };
   }, []);
 
-  const SearchBox = ({ className = "" }) => (
-    <label
-      className={`group flex h-10 items-center gap-2 rounded-full bg-slate-100 px-4 text-slate-400 ring-1 ring-transparent transition focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 dark:bg-slate-900 dark:focus-within:bg-slate-950 ${className}`}
-    >
-      <Search size={16} className="shrink-0" />
-      <input
-        className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
-        aria-label="Search courses"
-        placeholder="Search courses"
-        value={searchQuery}
-        onChange={(event) => onSearchChange(event.target.value)}
-      />
-      {searchQuery && (
-        <button
-          type="button"
-          aria-label="Clear search"
-          onClick={() => onSearchChange("")}
-          className="grid h-5 w-5 place-items-center rounded-full bg-slate-300 text-white hover:bg-slate-400 dark:bg-slate-700"
-        >
-          <X size={12} />
-        </button>
-      )}
-    </label>
-  );
-
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/80">
    
@@ -97,7 +99,6 @@ export default function Header({
           <Menu size={20} />
         </button>
 
-        {/* Brand */}
         <button
           className="flex shrink-0 items-center gap-2.5 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           onClick={() => onNavigate("home")}
@@ -143,7 +144,7 @@ export default function Header({
 
         {/* Right cluster */}
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <SearchBox className="hidden w-44 md:flex lg:w-56" />
+          <SearchBox className="hidden w-44 md:flex lg:w-56" searchQuery={searchQuery} onSearchChange={onSearchChange} />
 
           <div
             className="hidden items-center gap-1.5 rounded-full bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 ring-1 ring-amber-200/70 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-500/20 sm:flex"
@@ -253,7 +254,7 @@ export default function Header({
 
       {/* Mobile search row */}
       <div className="px-3 pb-3 sm:px-5 md:hidden">
-        <SearchBox className="w-full" />
+        <SearchBox className="w-full" searchQuery={searchQuery} onSearchChange={onSearchChange} />
       </div>
     </header>
   );
