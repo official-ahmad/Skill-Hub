@@ -557,6 +557,7 @@ export default function App() {
                 courses={courses}
                 usersData={usersData}
                 currentUser={currentUser}
+                userProfile={profile}
                 userProgress={userProgress}
                 onSelectCourse={handleSelectCourse}
                 onNavigate={handleNavigate}

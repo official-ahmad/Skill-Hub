@@ -44,8 +44,8 @@ export default function QueriesPage() {
   return (
     <div className="space-y-6">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">
-          Support center
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-800 dark:text-indigo-300 sem:text-indigo-600">
+          Submit your queries to administration
         </p>
         <h1 className="mt-2 text-3xl font-bold">Queries</h1>
         <p className="mt-1 text-sm text-slate-500">

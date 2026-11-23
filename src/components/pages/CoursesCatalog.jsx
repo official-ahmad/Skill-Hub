@@ -102,7 +102,7 @@ export default function CoursesCatalog({
       {/* Header */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-800 dark:text-indigo-300 sem:text-indigo-600">
             Skillhub · Course library
           </p>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">

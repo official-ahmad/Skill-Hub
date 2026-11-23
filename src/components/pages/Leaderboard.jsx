@@ -38,8 +38,8 @@ export default function Leaderboard({
     <div className="space-y-6">
       <header className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">
-            Air University · BSSE - Evening
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-800 dark:text-indigo-300 sem:text-indigo-600">
+            Skillhub · Course library
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             Class standings

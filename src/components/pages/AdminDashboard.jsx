@@ -606,17 +606,25 @@ export default function AdminDashboard({ onExit }) {
   const approveCertificate = async (request) => {
     try {
       await approveCertificateRequest(request._id);
-      setCertificateRequests((items) => items.filter((item) => item._id !== request._id));
+      setCertificateRequests((items) =>
+        items.filter((item) => item._id !== request._id),
+      );
       toast.success("Certificate issued and badge approved");
-    } catch (error) { toast.error(error.message); }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const rejectCertificate = async (request) => {
     try {
       await rejectCertificateRequest(request._id);
-      setCertificateRequests((items) => items.filter((item) => item._id !== request._id));
+      setCertificateRequests((items) =>
+        items.filter((item) => item._id !== request._id),
+      );
       toast.success("Certificate request rejected");
-    } catch (error) { toast.error(error.message); }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const removeQuery = async (query) => {
@@ -732,7 +740,11 @@ export default function AdminDashboard({ onExit }) {
       showCancelButton: true,
       confirmButtonText: "Exit portal",
       cancelButtonText: "Cancel",
-      customClass: { popup: "rounded-2xl", confirmButton: "rounded-xl", cancelButton: "rounded-xl" },
+      customClass: {
+        popup: "rounded-2xl",
+        confirmButton: "rounded-xl",
+        cancelButton: "rounded-xl",
+      },
     });
     if (!result.isConfirmed) return;
     try {
@@ -896,7 +908,10 @@ export default function AdminDashboard({ onExit }) {
         {tab === "users" && (
           <>
             <div className="mb-3 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-              <form className="flex min-w-0 flex-1 gap-2" onSubmit={handleSearch}>
+              <form
+                className="flex min-w-0 flex-1 gap-2"
+                onSubmit={handleSearch}
+              >
                 <Search size={18} strokeWidth={1.6} />
                 <input
                   className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-900"
@@ -917,7 +932,9 @@ export default function AdminDashboard({ onExit }) {
               </button>
             </div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-xs font-medium text-slate-500">Export users</span>
+              <span className="mr-1 text-xs font-medium text-slate-500">
+                Export users
+              </span>
               <button
                 className="button-secondary"
                 type="button"
@@ -1175,28 +1192,64 @@ export default function AdminDashboard({ onExit }) {
         {tab === "certificates" && (
           <section className="grid gap-3">
             <header className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div><p className="admin-eyebrow">Review queue</p><h2 className="text-lg font-semibold">Certificate requests</h2></div>
-              <span className="text-xs text-slate-500">{certificateRequests.length} pending</span>
+              <div>
+                <p className="admin-eyebrow">Review queue</p>
+                <h2 className="text-lg font-semibold">Certificate requests</h2>
+              </div>
+              <span className="text-xs text-slate-500">
+                {certificateRequests.length} pending
+              </span>
             </header>
             {certificateRequests.length ? (
               <div className="grid gap-3 lg:grid-cols-2">
                 {certificateRequests.map((request) => (
-                  <article key={request._id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                  <article
+                    key={request._id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                  >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0"><h3 className="truncate font-semibold">{request.studentName || request.student?.name}</h3><p className="truncate text-sm text-slate-500">{request.immutableStudentId}</p></div>
-                      <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">Pending</span>
+                      <div className="min-w-0">
+                        <h3 className="truncate font-semibold">
+                          {request.studentName || request.student?.name}
+                        </h3>
+                        <p className="truncate text-sm text-slate-500">
+                          {request.immutableStudentId}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                        Pending
+                      </span>
                     </div>
-                    <p className="mt-4 text-sm font-medium">{request.courseTitle}</p>
-                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500"><span>{request.currentXp} XP earned</span><span>{request.requiredXp} XP required</span></div>
+                    <p className="mt-4 text-sm font-medium">
+                      {request.courseTitle}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-slate-500">
+                      <span>{request.currentXp} XP earned</span>
+                      <span>{request.requiredXp} XP required</span>
+                    </div>
                     <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                      <button className="button-primary" type="button" onClick={() => approveCertificate(request)}>Approve & issue</button>
-                      <button className="button-danger" type="button" onClick={() => rejectCertificate(request)}>Reject</button>
+                      <button
+                        className="button-primary"
+                        type="button"
+                        onClick={() => approveCertificate(request)}
+                      >
+                        Approve & issue
+                      </button>
+                      <button
+                        className="button-danger"
+                        type="button"
+                        onClick={() => rejectCertificate(request)}
+                      >
+                        Reject
+                      </button>
                     </div>
                   </article>
                 ))}
               </div>
             ) : (
-              <p className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">No certificate requests pending review.</p>
+              <p className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
+                No certificate requests pending review.
+              </p>
             )}
           </section>
         )}
