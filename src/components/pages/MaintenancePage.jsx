@@ -22,7 +22,7 @@ export default function MaintenancePage() {
         </p>
         <div className="mt-6 flex items-start gap-3 border-t border-slate-200 pt-5 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
           <CalendarClock className="mt-0.5 shrink-0" size={18} />
-          Estimated completion: the next maintenance window.
+          Estimated completion: 2 Hours.
         </div>
       </section>
     </main>

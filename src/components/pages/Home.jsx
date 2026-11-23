@@ -9,8 +9,6 @@ import {
 } from "lucide-react";
 import CourseIcon from "../CourseIcon";
 
-/* ---------- shared tokens ---------- */
-
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-teal-400 dark:focus-visible:ring-offset-zinc-950";
 
@@ -216,11 +214,11 @@ export default function Home({
       {/* Header */}
       <header className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] lg:items-end">
         <div className="min-w-0">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Skillhub · Student course portal
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-800 dark:text-indigo-300 sem:text-indigo-600">
+            Skillhub · Course library
           </p>
-          <h1 className="mt-2 text-3xl font-medium tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
-            Courses for the class
+          <h1 className="text-2xl font-bold tracking-tight sm:text-5xl">
+           Courses for the class
           </h1>
           <p className="mt-2 max-w-prose text-zinc-600 dark:text-zinc-300">
             Course materials, lesson notes, and class progress in one place
