@@ -50,14 +50,8 @@ export default function MyLearning({
     0,
   );
   const xp = passed * 50;
-  const name =
-    userProfile?.name ||
-    usersData[currentUser]?.name ||
-    "";
-  const avatar =
-    userProfile?.avatar ||
-    usersData[currentUser]?.avatar ||
-    "";
+  const name = userProfile?.name || usersData[currentUser]?.name || "";
+  const avatar = userProfile?.avatar || usersData[currentUser]?.avatar || "";
   const firstName = name.split(" ")[0];
 
   // Course the student is furthest along in, for the "pick up where you left off" card
@@ -157,7 +151,7 @@ export default function MyLearning({
       </p>
       {cta && (
         <button
-          className="mt-4 h-10 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          className="button-primary mt-4 h-10 rounded-xl px-4 text-sm font-semibold"
           onClick={() => onNavigate("courses")}
         >
           Browse courses
@@ -262,13 +256,14 @@ export default function MyLearning({
                     lessons done
                   </p>
                 </div>
-                <button
+                {/* <button
                   className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-600"
                   onClick={() => onSelectCourse(featured.id)}
                 >
                   Continue course
                   <ArrowRight size={16} />
-                </button>
+                </button> */}
+               
               </div>
             )}
 
@@ -387,7 +382,7 @@ export default function MyLearning({
               </dl>
 
               <button
-                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+                className="button-primary mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
                 onClick={() => onNavigate("profile")}
               >
                 Open full profile

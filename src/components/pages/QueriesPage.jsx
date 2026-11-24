@@ -64,7 +64,7 @@ export default function QueriesPage() {
           placeholder="Describe your question..."
         />
         <button
-          className="flex h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white"
+          className="button-primary flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold"
           type="submit"
           disabled={!message.trim()}
         >

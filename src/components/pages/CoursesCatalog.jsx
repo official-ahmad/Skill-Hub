@@ -241,7 +241,7 @@ export default function CoursesCatalog({
           </p>
           {filtersActive && (
             <button
-              className="mt-5 h-10 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              className="button-primary mt-5 h-10 rounded-xl px-4 text-sm font-semibold"
               onClick={clearFilters}
             >
               Clear filters

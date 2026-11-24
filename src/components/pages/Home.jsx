@@ -218,7 +218,7 @@ export default function Home({
             Skillhub · Course library
           </p>
           <h1 className="text-2xl font-bold tracking-tight sm:text-5xl">
-           Courses for the class
+            Courses for the class
           </h1>
           <p className="mt-2 max-w-prose text-zinc-600 dark:text-zinc-300">
             Course materials, lesson notes, and class progress in one place
@@ -247,11 +247,18 @@ export default function Home({
               className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:ring-0 dark:text-zinc-50 dark:placeholder:text-zinc-500"
             />
           </label>
-          <button
+          {/* <button
             type="submit"
             className={`h-11 rounded-lg bg-teal-700 px-5 text-sm font-medium text-white transition-colors duration-150 ease-out hover:bg-teal-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${focusRing}`}
           >
             Search
+          </button> */}
+          <button
+            type="submit"
+            style={{ color: undefined }}
+            className={`button-primary group inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold ${focusRing}`}
+          >
+            <span className="tracking-tight">Search</span>
           </button>
         </form>
       </header>

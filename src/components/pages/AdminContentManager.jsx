@@ -34,7 +34,7 @@ const blankTechnology = {
   image: "",
 };
 const primaryButton =
-  "inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white";
+  "button-primary inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold";
 const secondaryButton =
   "inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200";
 const iconButton =

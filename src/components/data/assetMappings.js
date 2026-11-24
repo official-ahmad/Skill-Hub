@@ -28,7 +28,7 @@ const courseAssets = {
 };
 
 const instructorAssets = {
-  "Shradha Khapra": "/instructors/shardra.jpg",
+  "Shradha Khapra": "/instructors/Shradha%20Khapra.jpg",
   "Shradha Khapra (Apna College)": "/instructors/apna-college.jpg",
   "Coder Army": "/instructors/coder-army.jpg",
   "CodeWithHarry": "/instructors/codewithharry.jpg",
@@ -40,11 +40,72 @@ const instructorAssets = {
   MPrashant: "/instructors/MPrashant.jpg",
 };
 
+const instructorPhotoFiles = [
+  "varun.jpg",
+  "thapa.jpg",
+  "Shradha Khapra.jpg",
+  "MPrashant.jpg",
+  "codewithharry.jpg",
+  "CodeWithHarry Community.jpg",
+  "codestepbystep.jpg",
+  "coder-army.jpg",
+  "brocode.jpg",
+  "apna-college.jpg",
+];
+
+const normalizeInstructorName = (value) =>
+  String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+export const getInstructorPhotoCandidates = (courseOrName) => {
+  const instructor =
+    typeof courseOrName === "string"
+      ? courseOrName
+      : courseOrName?.by || courseOrName?.instructor || "";
+  const customPhoto =
+    typeof courseOrName === "object" && courseOrName
+      ? courseOrName.instructorPhoto
+      : "";
+  const parentheticalNames = [...String(instructor).matchAll(/\(([^)]+)\)/g)].map(
+    ([, value]) => value,
+  );
+  const withoutParentheticals = String(instructor)
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .trim();
+  const nameVariants = [
+    instructor,
+    withoutParentheticals,
+    ...parentheticalNames,
+    instructorAssets[instructor] ? instructor : "",
+  ].filter(Boolean);
+  const normalizedNames = [...new Set(nameVariants.map(normalizeInstructorName))];
+  const matchedFiles = instructorPhotoFiles
+    .map((file) => {
+      const normalizedFile = normalizeInstructorName(file.replace(/\.[^.]+$/, ""));
+      const exactIndex = normalizedNames.indexOf(normalizedFile);
+      if (exactIndex >= 0) return { file, score: exactIndex };
+      const prefixIndex = normalizedNames.findIndex(
+        (name) =>
+          name.length >= 4 &&
+          normalizedFile.length >= 4 &&
+          (name.startsWith(normalizedFile) || normalizedFile.startsWith(name)),
+      );
+      return prefixIndex >= 0
+        ? { file, score: 100 + prefixIndex }
+        : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score)
+    .map(({ file }) => `/instructors/${encodeURIComponent(file)}`);
+
+  const mappedPhoto = instructorAssets[instructor];
+  return [...new Set([customPhoto, mappedPhoto, ...matchedFiles].filter(Boolean))];
+};
+
 export const getCourseImage = (course) =>
   course?.image || courseAssets[course?.id] || courseAssets[course?._id] || null;
 
 export const getInstructorPhoto = (course) =>
-  course?.instructorPhoto || instructorAssets[course?.by || course?.instructor] || null;
+  getInstructorPhotoCandidates(course)[0] || null;
 
 export const creatorChannels = {
   "Shradha Khapra": { url: "https://www.youtube.com/@ApnaCollegeOfficial", verified: true },

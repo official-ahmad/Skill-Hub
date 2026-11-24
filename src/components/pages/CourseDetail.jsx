@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, Check, LockKeyhole, Play } from "lucide-react";
 import CourseIcon from "../CourseIcon";
+import InstructorAvatar from "../InstructorAvatar";
 
 const TABS = ["Overview", "Course content", "Instructor"];
 
@@ -132,7 +133,6 @@ export default function CourseDetail({
         Courses
       </button>
 
-      {/* Header */}
       <section
         className={`${card} grid items-center gap-8 p-6 sm:p-8 md:grid-cols-[minmax(0,1fr)_auto]`}
       >
@@ -148,13 +148,21 @@ export default function CourseDetail({
           <h1 className="mt-5 text-3xl font-medium tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
             {course.t}
           </h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            {course.by} · <span className="tabular-nums">{total}</span> lessons
-          </p>
+          <div className="mt-3 flex min-w-0 items-center gap-2.5">
+            <InstructorAvatar
+              key={instructor}
+              instructor={instructor}
+              initials={initials}
+              className="instructor-avatar-inline"
+            />
+            <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
+              {instructor} · <span className="tabular-nums">{total}</span> lessons
+            </p>
+          </div>
           <button
             type="button"
             onClick={() => onStartCourse(course.id)}
-            className={`mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-teal-700 px-5 text-sm font-medium text-white transition-colors hover:bg-teal-800 active:scale-[0.98] dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white ${focusRing}`}
+            className={`button-primary mt-6 inline-flex h-11 items-center gap-2 rounded-lg px-5 text-sm font-semibold ${focusRing}`}
           >
             <Play size={16} strokeWidth={1.5} />
             {ctaLabel}
@@ -171,7 +179,6 @@ export default function CourseDetail({
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          {/* Tabs */}
           <div
             role="tablist"
             aria-label="Course sections"
@@ -285,9 +292,12 @@ export default function CourseDetail({
 
             {tab === "Instructor" && (
               <section className={`${card} flex items-center gap-4 p-6`}>
-                <span className="grid h-12 w-12 place-items-center rounded-full bg-zinc-100 text-sm font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                  {initials}
-                </span>
+                <InstructorAvatar
+                  key={instructor}
+                  instructor={instructor}
+                  initials={initials}
+                  className="instructor-avatar-large"
+                />
                 <div>
                   <p className="font-medium text-zinc-900 dark:text-zinc-50">
                     {instructor}
@@ -301,7 +311,6 @@ export default function CourseDetail({
           </div>
         </div>
 
-        {/* Up next */}
         <aside className={`${card} p-6 lg:sticky lg:top-6`}>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {finished ? "Status" : "Up next"}

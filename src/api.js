@@ -4,9 +4,8 @@ const configuredApiUrl = String(import.meta.env.VITE_API_URL || "")
 if (!configuredApiUrl) {
   throw new Error("VITE_API_URL must be set to the Skillhub API origin.");
 }
-const API_URL = /\/api$/i.test(configuredApiUrl)
-  ? configuredApiUrl
-  : `${configuredApiUrl}/api`;
+export const API_BASE_URL = configuredApiUrl.replace(/\/api$/i, "");
+const API_URL = `${API_BASE_URL}/api`;
 const TOKEN_KEY = "sh_token";
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
@@ -47,10 +46,10 @@ export const saveProgress = (courseId, completedLessons) =>
     method: "PUT",
     body: JSON.stringify({ completedLessons }),
   });
-export const submitLessonQuiz = (courseId, lessonIndex, answers) =>
+export const submitLessonQuiz = (courseId, lessonIndex, submittedAnswers) =>
   api(`/progress/${encodeURIComponent(courseId)}/lessons/${lessonIndex}/quiz`, {
     method: "POST",
-    body: JSON.stringify({ answers }),
+    body: JSON.stringify({ submittedAnswers }),
   });
 export const saveNote = (courseId, lessonIndex, text) =>
   api(`/progress/${encodeURIComponent(courseId)}/notes/${lessonIndex}`, {

@@ -366,7 +366,7 @@ export default function Profile({
             </div>
 
             <button
-              className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-slate-900"
+              className="button-primary mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-slate-900"
               type="submit"
               disabled={saving || !detailsChanged}
             >
@@ -526,7 +526,7 @@ export default function Profile({
                           </button>
                         ) : item.eligible ? (
                           <button
-                            className="h-10 w-full rounded-xl bg-indigo-600 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                            className="button-primary h-10 w-full rounded-xl text-sm font-semibold"
                             onClick={() => request(item.courseId)}
                           >
                             Request certificate
@@ -711,7 +711,7 @@ export default function Profile({
                 Cancel
               </button>
               <button
-                className="h-10 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="button-primary h-10 rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={submitQuiz}
                 disabled={selectedAnswer === null}
               >

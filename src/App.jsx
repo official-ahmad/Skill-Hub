@@ -51,13 +51,19 @@ export default function App() {
   const initialRoom = (() => {
     if (!getToken()) return null;
     try {
-      return JSON.parse(localStorage.getItem("sh_active_course_room") || "null");
+      return JSON.parse(
+        localStorage.getItem("sh_active_course_room") || "null",
+      );
     } catch {
       return null;
     }
   })();
-  const [selectedCourseId, setSelectedCourseId] = useState(initialRoom?.courseId || null);
-  const [inCourseRoom, setInCourseRoom] = useState(Boolean(initialRoom?.courseId));
+  const [selectedCourseId, setSelectedCourseId] = useState(
+    initialRoom?.courseId || null,
+  );
+  const [inCourseRoom, setInCourseRoom] = useState(
+    Boolean(initialRoom?.courseId),
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All");
@@ -99,7 +105,9 @@ export default function App() {
       .catch(() => {
         if (active) setAdminSession(false);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -141,7 +149,9 @@ export default function App() {
         if (active) setTotalXPOverride(Number(data.xp || 0));
       })
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [currentUser]);
 
   useEffect(() => {
@@ -150,27 +160,26 @@ export default function App() {
       .then((items) => {
         if (!active) return;
         const mapped = items.map((course) => ({
-              ...course,
-              id: course._id,
-              t: course.title,
-              cat: course.category,
-              ic: course.icon,
-              c: course.colorIndex,
-              by: course.instructor,
-              v: Array.isArray(course.lessons)
-                ? course.lessons.map((lesson) => [
-                    lesson.title,
-                    lesson.video,
-                    (lesson.questions || []).map((q) => [
-                      q.question,
-                      q.options,
-                    ]),
-                  ])
-                : [],
-            }));
+          ...course,
+          id: course._id,
+          t: course.title,
+          cat: course.category,
+          ic: course.icon,
+          c: course.colorIndex,
+          by: course.instructor,
+          v: Array.isArray(course.lessons)
+            ? course.lessons.map((lesson) => [
+                lesson.title,
+                lesson.video,
+                (lesson.questions || []).map((q) => [q.question, q.options]),
+              ])
+            : [],
+        }));
         setCourses(mapped);
         if (initialRoom?.courseId) {
-          const found = mapped.find((course) => course.id === initialRoom.courseId);
+          const found = mapped.find(
+            (course) => course.id === initialRoom.courseId,
+          );
           if (found) {
             setSelectedCourseId(found.id);
             setInCourseRoom(Boolean(initialRoom.courseId));
@@ -309,7 +318,9 @@ export default function App() {
       if (activeRoom?.viewState === "quiz") {
         setStatusBanner({
           title: "Quiz pending",
-          text: `${activeCourse?.t || "Your course"} · lesson ${activeRoom.index + 1}`,
+          text: `${activeCourse?.t || "Your course"} · lesson ${
+            activeRoom.index + 1
+          }`,
         });
       } else if (activeCourse) {
         setStatusBanner({
@@ -318,19 +329,17 @@ export default function App() {
         });
       } else {
         setStatusBanner({
-          title: "Welcome back",
-          text: "Your learning dashboard is ready",
+          title: `Welcome back, ${userProfile.name}!`,
         });
       }
     } catch {
       setStatusBanner({
         title: "Welcome back",
-        text: "Your learning dashboard is ready",
       });
     }
-    toast.success(
-      userProfile?.name ? `Welcome back, ${userProfile.name}!` : "Signed in successfully",
-    );
+    // toast.success(
+    //   userProfile?.name ? `Welcome back, ${userProfile.name}!` : "Signed in successfully",
+    // );
   };
 
   const handleLogout = () => {
@@ -348,12 +357,9 @@ export default function App() {
         ? detailedCourse
         : courses.find((course) => course.id === activeRoom.courseId));
     const roomIndex = activeRoom?.index || 0;
-    const roomCompleted = roomCourse
-      ? userProgress[roomCourse.id] || 0
-      : 0;
+    const roomCompleted = roomCourse ? userProgress[roomCourse.id] || 0 : 0;
     const roomHasIncompleteQuiz =
-      activeRoom?.viewState === "quiz" ||
-      activeRoom?.viewState === "result";
+      activeRoom?.viewState === "quiz" || activeRoom?.viewState === "result";
     const roomHasIncompleteLesson =
       roomCourse &&
       activeRoom &&
@@ -363,10 +369,12 @@ export default function App() {
       activeRoom?.viewState === "quiz"
         ? `pending quiz for “${roomCourse?.t || "your course"}”`
         : roomHasIncompleteLesson
-          ? `incomplete lesson ${roomIndex + 1} in “${roomCourse?.t || "your course"}”`
-          : roomHasIncompleteQuiz
-            ? `pending quiz for “${roomCourse?.t || "your course"}”`
-            : "";
+        ? `incomplete lesson ${roomIndex + 1} in “${
+            roomCourse?.t || "your course"
+          }”`
+        : roomHasIncompleteQuiz
+        ? `pending quiz for “${roomCourse?.t || "your course"}”`
+        : "";
 
     const performLogout = () => {
       logoutUser().catch((error) =>
@@ -410,7 +418,10 @@ export default function App() {
           performLogout();
           return;
         }
-        if (result.dismiss === Swal.DismissReason.cancel && activeRoom?.courseId) {
+        if (
+          result.dismiss === Swal.DismissReason.cancel &&
+          activeRoom?.courseId
+        ) {
           loadDetailedCourse(activeRoom.courseId).then(() => {
             setSelectedCourseId(activeRoom.courseId);
             setInCourseRoom(true);
@@ -475,10 +486,7 @@ export default function App() {
         v: (course.lessons || []).map((lesson) => [
           lesson.title,
           lesson.video,
-          (lesson.questions || []).map((q) => [
-            q.question,
-            q.options,
-          ]),
+          (lesson.questions || []).map((q) => [q.question, q.options]),
         ]),
       });
     } catch (error) {
@@ -556,8 +564,15 @@ export default function App() {
   );
   const totalXP = totalXPOverride ?? totalPassedVideos * 50;
 
-  const verificationMatch = window.location.pathname.match(/^\/verify\/([^/]+)\/?$/);
-  if (verificationMatch) return <VerificationPage certificateId={decodeURIComponent(verificationMatch[1])} />;
+  const verificationMatch = window.location.pathname.match(
+    /^\/verify\/([^/]+)\/?$/,
+  );
+  if (verificationMatch)
+    return (
+      <VerificationPage
+        certificateId={decodeURIComponent(verificationMatch[1])}
+      />
+    );
 
   if (adminSession) {
     return <AdminDashboard onExit={() => setAdminSession(false)} />;
@@ -577,7 +592,10 @@ export default function App() {
           <div className="h-10 w-56 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {[0, 1, 2].map((item) => (
-              <div key={item} className="h-52 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900" />
+              <div
+                key={item}
+                className="h-52 animate-pulse rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+              />
             ))}
           </div>
         </main>
@@ -596,8 +614,7 @@ export default function App() {
   }
 
   const selectedCourse =
-    detailedCourse &&
-    String(detailedCourse.id) === String(selectedCourseId)
+    detailedCourse && String(detailedCourse.id) === String(selectedCourseId)
       ? detailedCourse
       : courses.find((c) => String(c.id) === String(selectedCourseId));
 
@@ -627,9 +644,16 @@ export default function App() {
       />
 
       {announcement && !announcementDismissed && (
-        <div className="mx-3 mt-4 grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-4 py-2 shadow-sm dark:border-indigo-500/30 dark:from-indigo-500/10 dark:to-slate-950 sm:mx-6 lg:mx-auto lg:max-w-[1380px]" role="status">
-          <strong className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">Class notice</strong>
-          <span className="min-w-0 text-sm text-slate-700 dark:text-slate-200">{announcement.message}</span>
+        <div
+          className="mx-3 mt-4 grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white px-4 py-2 shadow-sm dark:border-indigo-500/30 dark:from-indigo-500/10 dark:to-slate-950 sm:mx-6 lg:mx-auto lg:max-w-[1380px]"
+          role="status"
+        >
+          <strong className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">
+            Class notice
+          </strong>
+          <span className="min-w-0 text-sm text-slate-700 dark:text-slate-200">
+            {announcement.message}
+          </span>
           <button
             type="button"
             aria-label="Dismiss announcement"
@@ -669,10 +693,11 @@ export default function App() {
         {selectedCourseId ? (
           inCourseRoom ? (
             <CourseRoom
-              key={selectedCourse?.id || "course-loading"}
+              key={selectedCourseId || "course-loading"}
               course={selectedCourse}
               userProgress={userProgress}
               userNotes={userNotes}
+              user={profile}
               totalPassed={totalPassedVideos}
               onBackToDetails={handleBackToCourseDetails}
               onUpdateProgress={handleUpdateProgress}
@@ -766,7 +791,9 @@ export default function App() {
           </>
         )}
       </main>
-      <footer className="px-6 py-5 text-center text-xs text-slate-400 dark:text-slate-500">Skillhub Team</footer>
+      <footer className="px-6 py-5 text-center text-xs text-slate-400 dark:text-slate-500">
+        Skillhub Team
+      </footer>
     </div>
   );
 }
