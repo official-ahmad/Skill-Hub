@@ -164,7 +164,6 @@ export default function App() {
                     (lesson.questions || []).map((q) => [
                       q.question,
                       q.options,
-                      q.correctIndex,
                     ]),
                   ])
                 : [],
@@ -192,7 +191,6 @@ export default function App() {
                     (lesson.questions || []).map((q) => [
                       q.question,
                       q.options,
-                      q.correctIndex,
                     ]),
                   ]),
                 });
@@ -480,7 +478,6 @@ export default function App() {
           (lesson.questions || []).map((q) => [
             q.question,
             q.options,
-            q.correctIndex,
           ]),
         ]),
       });
@@ -505,12 +502,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleUpdateProgress = (courseId, count) => {
+  const handleUpdateProgress = (courseId, count, persist = true) => {
     if (!currentUser) return;
 
     const updated = { ...userProgress, [courseId]: count };
     setUserProgress(updated);
-    saveProgress(courseId, count)
+    const sync = persist ? saveProgress(courseId, count) : Promise.resolve();
+    sync
       .then(() => getLeaderboard())
       .then((entries) =>
         setAllScoresCache(

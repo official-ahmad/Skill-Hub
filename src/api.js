@@ -47,6 +47,11 @@ export const saveProgress = (courseId, completedLessons) =>
     method: "PUT",
     body: JSON.stringify({ completedLessons }),
   });
+export const submitLessonQuiz = (courseId, lessonIndex, answers) =>
+  api(`/progress/${encodeURIComponent(courseId)}/lessons/${lessonIndex}/quiz`, {
+    method: "POST",
+    body: JSON.stringify({ answers }),
+  });
 export const saveNote = (courseId, lessonIndex, text) =>
   api(`/progress/${encodeURIComponent(courseId)}/notes/${lessonIndex}`, {
     method: "PUT",

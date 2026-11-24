@@ -9,8 +9,7 @@ import {
   RotateCcw,
   Save,
 } from "lucide-react";
-
-const PASS_MARK = 0.6;
+import { submitLessonQuiz } from "../../api";
 
 export default function CourseRoom({
   course,
@@ -33,9 +32,15 @@ export default function CourseRoom({
     }
   };
   const savedRoom = getSavedRoom();
-  const getWatchedSeconds = (courseId = course?.id, index = savedRoom?.index ?? initialCount) => {
+  const getWatchedSeconds = (
+    courseId = course?.id,
+    index = savedRoom?.index ?? initialCount,
+  ) => {
     try {
-      return Math.max(0, Number(localStorage.getItem(`sh_watched_${courseId}_${index}`) || 0));
+      return Math.max(
+        0,
+        Number(localStorage.getItem(`sh_watched_${courseId}_${index}`) || 0),
+      );
     } catch {
       return 0;
     }
@@ -47,8 +52,8 @@ export default function CourseRoom({
   );
   const [viewState, setViewState] = useState(
     savedRoom?.viewState === "quiz" ||
-    savedRoom?.viewState === "no_quiz" ||
-    savedRoom?.viewState === "result"
+      savedRoom?.viewState === "no_quiz" ||
+      savedRoom?.viewState === "result"
       ? savedRoom.viewState
       : "watch",
   );
@@ -65,6 +70,7 @@ export default function CourseRoom({
   const [quizPassed, setQuizPassed] = useState(false);
   const [scorePercent, setScorePercent] = useState(0);
   const [validationError, setValidationError] = useState("");
+  const [submittingQuiz, setSubmittingQuiz] = useState(false);
   const restoredQuiz = useRef(false);
 
   useEffect(() => {
@@ -122,7 +128,8 @@ export default function CourseRoom({
 
   useEffect(() => {
     const courseId = course?.id;
-    if (!courseId || viewState !== "watch" || typeof document === "undefined") return undefined;
+    if (!courseId || viewState !== "watch" || typeof document === "undefined")
+      return undefined;
     const watchedKey = `${courseId}_${safeIndex}`;
     const interval = window.setInterval(() => {
       if (document.hidden) return;
@@ -133,10 +140,7 @@ export default function CourseRoom({
             : getWatchedSeconds(courseId, safeIndex);
         const next = currentSeconds + 1;
         try {
-          localStorage.setItem(
-            `sh_watched_${watchedKey}`,
-            String(next),
-          );
+          localStorage.setItem(`sh_watched_${watchedKey}`, String(next));
         } catch {
           /* localStorage unavailable */
         }
@@ -155,7 +159,9 @@ export default function CourseRoom({
 
   const resumeUrl =
     watchedSeconds > 5
-      ? `${embedUrl}${embedUrl.includes("?") ? "&" : "?"}start=${Math.floor(watchedSeconds)}`
+      ? `${embedUrl}${embedUrl.includes("?") ? "&" : "?"}start=${Math.floor(
+          watchedSeconds,
+        )}`
       : embedUrl;
 
   const shuffle = (items) => {
@@ -175,15 +181,19 @@ export default function CourseRoom({
       return;
     }
     setQuizQuestions(
-      shuffle(questions).map(([question, options, correctIndex]) => {
+      shuffle(questions.map((rawQuestion, questionIndex) => {
+        const [question, options] = Array.isArray(rawQuestion)
+          ? rawQuestion
+          : [rawQuestion?.question, rawQuestion?.options];
         const safeOptions = Array.isArray(options) ? options : [];
-        const indexes = shuffle(safeOptions.map((_, index) => index));
         return {
           question,
-          options: indexes.map((index) => safeOptions[index]),
-          correctIndex: indexes.indexOf(correctIndex),
+          questionIndex,
+          options: shuffle(
+            safeOptions.map((text, originalIndex) => ({ text, originalIndex })),
+          ),
         };
-      }),
+      })),
     );
     setUserAnswers({});
     setQuizSubmitted(false);
@@ -191,7 +201,8 @@ export default function CourseRoom({
     setViewState("quiz");
   };
 
-  const submitQuiz = () => {
+  const submitQuiz = async () => {
+    if (submittingQuiz) return;
     if (Object.keys(userAnswers).length < quizQuestions.length) {
       setValidationError(
         `Answer all questions first (${Object.keys(userAnswers).length} of ${
@@ -200,26 +211,31 @@ export default function CourseRoom({
       );
       return;
     }
-    const correct = quizQuestions.reduce(
-      (sum, question, index) =>
-        sum + (userAnswers[index] === question.correctIndex ? 1 : 0),
-      0,
-    );
-    const passed = correct / quizQuestions.length >= PASS_MARK;
-    setScorePercent(Math.round((correct / quizQuestions.length) * 100));
-    setQuizPassed(passed);
-    setQuizSubmitted(true);
-    if (passed && completed === safeIndex)
-      onUpdateProgress(course.id, safeIndex + 1);
-    setViewState("result");
+    setSubmittingQuiz(true);
+    setValidationError("");
+    try {
+      const answers = quizQuestions.map((question, questionIndex) => ({
+        questionIndex: question.questionIndex,
+        selectedIndex:
+          question.options[userAnswers[questionIndex]]?.originalIndex,
+      }));
+      const result = await submitLessonQuiz(course.id, safeIndex, answers);
+      setScorePercent(result.scorePercent);
+      setQuizPassed(result.passed);
+      setQuizSubmitted(true);
+      if (result.passed && result.completedLessons > completed)
+        onUpdateProgress(course.id, result.completedLessons, false);
+      setViewState("result");
+    } catch (error) {
+      setValidationError(error.message || "Quiz submission failed. Please retry.");
+    } finally {
+      setSubmittingQuiz(false);
+    }
   };
 
   useEffect(() => {
-    if (
-      restoredQuiz.current ||
-      savedRoom?.viewState !== "quiz" ||
-      !course
-    ) return;
+    if (restoredQuiz.current || savedRoom?.viewState !== "quiz" || !course)
+      return;
     const questions = Array.isArray(course.v?.[currentIndex]?.[2])
       ? course.v[currentIndex][2]
       : [];
@@ -227,11 +243,18 @@ export default function CourseRoom({
     restoredQuiz.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuizQuestions(
-      questions.map(([question, options, correctIndex]) => ({
-        question,
-        options: Array.isArray(options) ? options : [],
-        correctIndex,
-      })),
+      questions.map((rawQuestion, questionIndex) => {
+        const [question, options] = Array.isArray(rawQuestion)
+          ? rawQuestion
+          : [rawQuestion?.question, rawQuestion?.options];
+        return {
+          question,
+          questionIndex,
+          options: (Array.isArray(options) ? options : []).map(
+            (text, originalIndex) => ({ text, originalIndex }),
+          ),
+        };
+      }),
     );
   }, [course, currentIndex, savedRoom?.viewState]);
 
@@ -356,7 +379,7 @@ export default function CourseRoom({
                           }))
                         }
                       />
-                      <span className="break-words">{option}</span>
+                      <span className="break-words">{option.text}</span>
                     </label>
                   ))}
                 </fieldset>
@@ -369,8 +392,12 @@ export default function CourseRoom({
                   {validationError}
                 </p>
               )}
-              <button className={`${primary} mt-5`} onClick={submitQuiz}>
-                Submit answers
+              <button
+                className={`${primary} mt-5`}
+                onClick={submitQuiz}
+                disabled={submittingQuiz}
+              >
+                {submittingQuiz ? "Grading…" : "Submit answers"}
               </button>
             </section>
           )}
