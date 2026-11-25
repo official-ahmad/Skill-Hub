@@ -35,6 +35,8 @@ const badgeStyles = {
     "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/20",
   eligible:
     "bg-indigo-50 text-indigo-700 ring-indigo-600/20 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/20",
+  marathon:
+    "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-300 dark:ring-violet-400/20",
   locked:
     "bg-slate-100 text-slate-600 ring-slate-500/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-600/30",
 };
@@ -408,8 +410,8 @@ export default function Profile({
             <div>
               <h2 className="text-lg font-semibold">Certificates</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Finish a course and reach its XP requirement to request a
-                certificate.
+                Finish every lesson, pass the 75% Marathon Quiz, and reach the
+                course XP requirement to request a certificate.
               </p>
             </div>
 
@@ -428,11 +430,14 @@ export default function Profile({
                     ? "pending"
                     : item.eligible
                     ? "eligible"
+                    : item.completed && !item.marathonPassed
+                    ? "marathon"
                     : "locked";
                   const statusLabel = {
                     issued: "Issued",
                     pending: "Pending",
                     eligible: "Eligible",
+                    marathon: "Marathon required",
                     locked: "Locked",
                   }[status];
 
@@ -461,7 +466,9 @@ export default function Profile({
                           </h3>
                           <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                             {item.completed
-                              ? "Course completed"
+                              ? item.marathonPassed
+                                ? "Lessons and Marathon Quiz passed"
+                                : "Pass the Marathon Quiz to unlock the certificate"
                               : `${item.completedLessons}/${item.lessonCount} lessons`}
                           </p>
                         </div>
@@ -516,6 +523,14 @@ export default function Profile({
                             disabled
                           >
                             Request pending review
+                          </button>
+                        ) : item.completed && !item.marathonPassed ? (
+                          <button
+                            className="button-primary flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold"
+                            onClick={() => onSelectCourse(item.courseId)}
+                          >
+                            <Trophy size={16} />
+                            Take Marathon Quiz
                           </button>
                         ) : item.request?.status === "rejected" ? (
                           <button

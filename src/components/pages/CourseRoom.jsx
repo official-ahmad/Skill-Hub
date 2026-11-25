@@ -5,13 +5,21 @@ import {
   Check,
   CircleCheck,
   CircleX,
+  Clock3,
   Download,
   LockKeyhole,
   Play,
   RotateCcw,
   Save,
 } from "lucide-react";
-import { API_BASE_URL, submitLessonQuiz } from "../../api";
+import {
+  API_BASE_URL,
+  getMarathonStatus,
+  startLessonQuiz,
+  startMarathonQuiz,
+  submitLessonQuiz,
+  submitMarathonQuiz,
+} from "../../api";
 
 const PRIMARY_BUTTON_STYLE = { color: "#ffffff" };
 
@@ -122,7 +130,7 @@ export default function CourseRoom({
       : Math.min(initialCount, Math.max(0, lessons.length - 1)),
   );
   const [viewState, setViewState] = useState(
-    savedRoom?.viewState === "quiz" || savedRoom?.viewState === "no_quiz"
+    ["quiz", "marathon", "no_quiz"].includes(savedRoom?.viewState)
       ? savedRoom.viewState
       : "watch",
   );
@@ -130,6 +138,8 @@ export default function CourseRoom({
   const [noteText, setNoteText] = useState("");
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [quizQuestions, setQuizQuestions] = useState([]);
+  const [quizMode, setQuizMode] = useState(savedRoom?.viewState === "marathon" ? "marathon" : "lesson");
+  const [quizAttemptId, setQuizAttemptId] = useState(savedRoom?.attemptId || "");
   const [userAnswers, setUserAnswers] = useState({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizPassed, setQuizPassed] = useState(false);
@@ -137,6 +147,10 @@ export default function CourseRoom({
   const [quizResult, setQuizResult] = useState(null);
   const [validationError, setValidationError] = useState("");
   const [submittingQuiz, setSubmittingQuiz] = useState(false);
+  const [marathonExpiresAt, setMarathonExpiresAt] = useState(null);
+  const [marathonSeconds, setMarathonSeconds] = useState(0);
+  const [marathonPassed, setMarathonPassed] = useState(false);
+  const [marathonStatusLoaded, setMarathonStatusLoaded] = useState(false);
   const restoredQuiz = useRef(false);
 
   useEffect(() => {
@@ -185,12 +199,13 @@ export default function CourseRoom({
           courseId: course.id,
           index: safeIndex,
           viewState,
+          attemptId: quizAttemptId,
         }),
       );
     } catch {
       /* localStorage unavailable */
     }
-  }, [course, safeIndex, viewState]);
+  }, [course, safeIndex, viewState, quizAttemptId]);
 
   const shuffle = (items) => {
     const result = [...items];
@@ -201,43 +216,75 @@ export default function CourseRoom({
     return result;
   };
 
-  const startQuiz = () => {
-    const questions = Array.isArray(currentVideo[2]) ? currentVideo[2] : [];
-    if (!questions.length) {
-      if (completed === safeIndex) onUpdateProgress(course.id, safeIndex + 1);
-      setViewState("no_quiz");
+  const installAttempt = (attempt, mode) => {
+    setQuizMode(mode);
+    setQuizAttemptId(attempt.attemptId || "");
+    setMarathonExpiresAt(attempt.expiresAt || null);
+    setMarathonSeconds(attempt.expiresAt ? Math.max(0, Math.ceil((new Date(attempt.expiresAt).getTime() - Date.now()) / 1000)) : 0);
+    if (attempt.result) {
+      setQuizResult(attempt.result);
+      setScorePercent(Number(attempt.result.scorePercent) || 0);
+      setQuizPassed(Boolean(attempt.result.passed));
+      setQuizSubmitted(true);
+      if (mode === "marathon" && attempt.result.passed) setMarathonPassed(true);
+      setViewState("result");
       return;
     }
     setQuizQuestions(
       shuffle(
-        questions.map((rawQuestion, questionIndex) => {
-          const [question, options] = Array.isArray(rawQuestion)
-            ? rawQuestion
-            : [rawQuestion?.question, rawQuestion?.options];
-          const safeOptions = Array.isArray(options) ? options : [];
-          return {
-            question,
-            questionIndex,
-            options: shuffle(
-              safeOptions.map((text, originalIndex) => ({
-                text,
-                originalIndex,
-              })),
-            ),
-          };
-        }),
+        (attempt.questions || []).map((question, questionIndex) => ({
+          ...question,
+          questionIndex,
+          options: shuffle(
+            (question.options || []).map((text, originalIndex) => ({
+              text,
+              originalIndex,
+            })),
+          ),
+        })),
       ),
     );
     setUserAnswers({});
     setQuizSubmitted(false);
     setQuizResult(null);
     setValidationError("");
-    setViewState("quiz");
+    setViewState(mode === "marathon" ? "marathon" : "quiz");
+  };
+
+  const loadAttempt = async (mode, resumeAttemptId = "") => {
+    setValidationError("");
+    try {
+      let attempt = mode === "marathon"
+        ? await startMarathonQuiz(course.id, resumeAttemptId)
+        : await startLessonQuiz(course.id, safeIndex, resumeAttemptId);
+      if (attempt.status === "expired" && !attempt.result) {
+        attempt = mode === "marathon"
+          ? await startMarathonQuiz(course.id)
+          : await startLessonQuiz(course.id, safeIndex);
+      }
+      installAttempt(attempt, mode);
+    } catch (error) {
+      setValidationError(error.message || "Could not start the quiz. Please try again.");
+    }
+  };
+
+  const startQuiz = async (resumeAttemptId = "") => {
+    const questions = Array.isArray(currentVideo[2]) ? currentVideo[2] : [];
+    if (!questions.length) {
+      if (completed === safeIndex) onUpdateProgress(course.id, safeIndex + 1);
+      setViewState("no_quiz");
+      return;
+    }
+    await loadAttempt("lesson", resumeAttemptId);
+  };
+
+  const startMarathon = async (resumeAttemptId = "") => {
+    await loadAttempt("marathon", resumeAttemptId);
   };
 
   const submitQuiz = async () => {
     if (submittingQuiz) return;
-    if (Object.keys(userAnswers).length < quizQuestions.length) {
+    if (quizMode === "lesson" && Object.keys(userAnswers).length < quizQuestions.length) {
       setValidationError(
         `Answer all questions first (${Object.keys(userAnswers).length} of ${
           quizQuestions.length
@@ -248,20 +295,21 @@ export default function CourseRoom({
     setSubmittingQuiz(true);
     setValidationError("");
     try {
-      const submittedAnswers = quizQuestions.map((question, questionIndex) => ({
-        questionIndex: question.questionIndex,
-        selectedIndex:
-          question.options[userAnswers[questionIndex]]?.originalIndex,
-      }));
-      const result = await submitLessonQuiz(
-        course.id,
-        safeIndex,
-        submittedAnswers,
-      );
+      const submittedAnswers = quizQuestions.map((question, questionIndex) => {
+        const selectedOption = question.options[userAnswers[questionIndex]];
+        return {
+          questionId: question.questionId,
+          selectedIndex: selectedOption ? selectedOption.originalIndex : null,
+        };
+      });
+      const result = quizMode === "marathon"
+        ? await submitMarathonQuiz(course.id, quizAttemptId, submittedAnswers)
+        : await submitLessonQuiz(course.id, safeIndex, quizAttemptId, submittedAnswers);
       setScorePercent(result.scorePercent);
       setQuizPassed(result.passed);
       setQuizResult(result);
       setQuizSubmitted(true);
+      if (quizMode === "marathon" && result.passed) setMarathonPassed(true);
       if (result.passed && result.completedLessons > completed)
         onUpdateProgress(course.id, result.completedLessons, false);
       setViewState("result");
@@ -275,29 +323,50 @@ export default function CourseRoom({
   };
 
   useEffect(() => {
-    if (restoredQuiz.current || savedRoom?.viewState !== "quiz" || !course)
-      return;
-    const questions = Array.isArray(course.v?.[currentIndex]?.[2])
-      ? course.v[currentIndex][2]
-      : [];
-    if (!questions.length) return;
+    if (!course || marathonStatusLoaded) return;
+    getMarathonStatus(course.id)
+      .then((status) => setMarathonPassed(Boolean(status.passed)))
+      .catch(() => {})
+      .finally(() => setMarathonStatusLoaded(true));
+  }, [course, marathonStatusLoaded]);
+
+  useEffect(() => {
+    if (
+      restoredQuiz.current ||
+      !course ||
+      !["quiz", "marathon"].includes(savedRoom?.viewState)
+    ) return;
     restoredQuiz.current = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setQuizQuestions(
-      questions.map((rawQuestion, questionIndex) => {
-        const [question, options] = Array.isArray(rawQuestion)
-          ? rawQuestion
-          : [rawQuestion?.question, rawQuestion?.options];
-        return {
-          question,
-          questionIndex,
-          options: (Array.isArray(options) ? options : []).map(
-            (text, originalIndex) => ({ text, originalIndex }),
-          ),
-        };
-      }),
-    );
-  }, [course, currentIndex, savedRoom?.viewState]);
+    const mode = savedRoom.viewState === "marathon" ? "marathon" : "lesson";
+    loadAttempt(mode, savedRoom.attemptId || "");
+    // The restore is intentionally one-shot for the course room mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course, savedRoom?.viewState]);
+
+  useEffect(() => {
+    if (viewState !== "marathon" || !marathonExpiresAt || quizSubmitted) return undefined;
+    const updateRemaining = () => {
+      const remaining = Math.max(0, Math.ceil((new Date(marathonExpiresAt).getTime() - Date.now()) / 1000));
+      setMarathonSeconds(remaining);
+    };
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 250);
+    return () => window.clearInterval(timer);
+  }, [viewState, marathonExpiresAt, quizSubmitted]);
+
+  useEffect(() => {
+    if (
+      viewState !== "marathon" ||
+      marathonSeconds !== 0 ||
+      !marathonExpiresAt ||
+      Date.now() < new Date(marathonExpiresAt).getTime() ||
+      quizSubmitted ||
+      submittingQuiz
+    ) return undefined;
+    const submitOnExpiry = window.setTimeout(() => submitQuiz(), 0);
+    return () => window.clearTimeout(submitOnExpiry);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewState, marathonSeconds, marathonExpiresAt, quizSubmitted, submittingQuiz]);
 
   const downloadQuizReport = async () => {
     if (!quizResult || !Array.isArray(quizResult.questionResults)) return;
@@ -389,7 +458,9 @@ export default function CourseRoom({
     pdf.text("COURSE & SCORE SUMMARY", margin, y);
     y += 5;
 
-    const quizNumber = `Quiz #${String(safeIndex + 1).padStart(2, "0")}`;
+    const quizNumber = quizMode === "marathon"
+      ? "Marathon Quiz"
+      : `Quiz #${String(safeIndex + 1).padStart(2, "0")}`;
     const score = Number.isInteger(quizResult.score) ? quizResult.score : 0;
     const totalQuestions = Number.isInteger(quizResult.totalQuestions)
       ? quizResult.totalQuestions
@@ -401,8 +472,8 @@ export default function CourseRoom({
         value: `${course.t || "Course"} (${course.id || "-"})`,
       },
       {
-        label: "Lesson & Quiz",
-        value: `${quizNumber} - ${lessonTitle || "Lesson"}`,
+        label: quizMode === "marathon" ? "Course Assessment" : "Lesson & Quiz",
+        value: quizMode === "marathon" ? `${quizNumber} - All Lessons` : `${quizNumber} - ${lessonTitle || "Lesson"}`,
       },
       { label: "Marks", value: `${score} / ${totalQuestions}` },
       {
@@ -517,10 +588,11 @@ export default function CourseRoom({
       );
     }
 
+    const reportScope = quizMode === "marathon" ? "marathon" : safeIndex + 1;
     const filename = `skillhub-quiz-${String(course.id || "course").replace(
       /[^\w-]/g,
       "-",
-    )}-${safeIndex + 1}.pdf`;
+    )}-${reportScope}.pdf`;
     pdf.save(filename);
   };
 
@@ -546,6 +618,9 @@ export default function CourseRoom({
   const answerProgress = quizQuestions.length
     ? Math.round((answeredCount / quizQuestions.length) * 100)
     : 0;
+  const isMarathon = quizMode === "marathon";
+  const marathonTimerProgress = Math.max(0, Math.min(1, marathonSeconds / (20 * 60)));
+  const marathonTimeLabel = `${String(Math.floor(marathonSeconds / 60)).padStart(2, "0")}:${String(marathonSeconds % 60).padStart(2, "0")}`;
 
   return (
     <div className="w-full max-w-full overflow-x-hidden space-y-4 sm:space-y-6 px-1 sm:px-0">
@@ -566,6 +641,33 @@ export default function CourseRoom({
           {safeIndex + 1} of {lessons.length}
         </p>
       </header>
+
+      {completed >= lessons.length && lessons.length > 0 && (
+        <section className="flex flex-col gap-3 rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 to-white p-4 shadow-sm dark:border-teal-900/70 dark:from-teal-950/40 dark:to-slate-900 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="font-semibold text-slate-900 dark:text-white">Course Marathon Quiz</h2>
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+              {marathonPassed ? "Passed · You can request your certificate once the course XP requirement is met." : "All lessons are complete. Pass 20 questions with at least 75% to unlock the certificate request."}
+            </p>
+          </div>
+          {marathonPassed ? (
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
+              <CircleCheck size={17} /> Passed
+            </span>
+          ) : viewState !== "marathon" ? (
+            <button className={primary} onClick={() => startMarathon()}>
+              {isMarathon ? "Retry Marathon Quiz" : "Start Marathon Quiz"}
+              <ArrowRight size={16} />
+            </button>
+          ) : null}
+        </section>
+      )}
+
+      {validationError && !["quiz", "marathon"].includes(viewState) && (
+        <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300" role="alert">
+          {validationError}
+        </p>
+      )}
 
       <div className="grid min-w-0 gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
         <section className="min-w-0 space-y-4 sm:space-y-5">
@@ -628,25 +730,26 @@ export default function CourseRoom({
             </section>
           )}
 
-          {viewState === "quiz" && (
+          {(viewState === "quiz" || viewState === "marathon") && (
             <section className="overflow-hidden rounded-3xl border border-indigo-100 bg-white shadow-xl shadow-indigo-950/5 ring-1 ring-indigo-100/70 dark:border-slate-700 dark:bg-slate-900 dark:shadow-black/20 dark:ring-slate-700/70">
               <header className="bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-4 sm:p-6 dark:from-indigo-950/60 dark:via-slate-900 dark:to-violet-950/40">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-400/15 dark:text-indigo-200 dark:ring-indigo-300/20">
-                        Quiz #{String(safeIndex + 1).padStart(2, "0")}
+                        {isMarathon ? "Course Marathon" : `Quiz #${String(safeIndex + 1).padStart(2, "0")}`}
                       </span>
                       <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
                         {quizQuestions.length} questions
                       </span>
                     </div>
                     <h2 className="mt-3 text-xl font-bold tracking-tight text-slate-950 sm:text-2xl dark:text-white">
-                      Lesson assessment
+                      {isMarathon ? "20-question course assessment" : "Lesson assessment"}
                     </h2>
                     <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-600 sm:text-sm dark:text-slate-300">
-                      Choose the best answer for each question. Your score is
-                      graded securely when you submit.
+                      {isMarathon
+                        ? "Answer the course-wide questions before the timer ends. Unanswered questions count as incorrect."
+                        : "Choose the best answer for each question. Your score is graded securely when you submit."}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center">
@@ -655,9 +758,22 @@ export default function CourseRoom({
                         Pass mark
                       </span>
                       <strong className="mt-0.5 block text-lg text-slate-900 dark:text-white">
-                        60%
+                        75%
                       </strong>
                     </div>
+                    {isMarathon && (
+                      <div className="col-span-2 flex items-center justify-center gap-3 rounded-2xl border border-indigo-100 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
+                        <svg viewBox="0 0 48 48" className="h-12 w-12 -rotate-90" aria-hidden="true">
+                          <circle cx="24" cy="24" r="19" fill="none" strokeWidth="4" className="stroke-slate-200 dark:stroke-slate-700" />
+                          <circle cx="24" cy="24" r="19" fill="none" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 19}`} strokeDashoffset={`${2 * Math.PI * 19 * (1 - marathonTimerProgress)}`} className="stroke-indigo-600 transition-[stroke-dashoffset] duration-300 dark:stroke-indigo-300" />
+                        </svg>
+                        <span className="text-left">
+                          <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Time left</span>
+                          <strong className="block font-mono text-xl tabular-nums text-slate-900 dark:text-white">{marathonTimeLabel}</strong>
+                        </span>
+                        <Clock3 size={17} className="text-indigo-600 dark:text-indigo-300" />
+                      </div>
+                    )}
                     <div className="min-w-20 rounded-2xl border border-white/80 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
                       <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                         Reward
@@ -689,7 +805,7 @@ export default function CourseRoom({
                 {quizQuestions.map((question, questionIndex) => (
                   <fieldset
                     className="min-w-0 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/80 p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5 dark:border-slate-700 dark:from-slate-900 dark:to-slate-800/70"
-                    key={question.questionIndex}
+                    key={question.questionId}
                   >
                     <legend className="sr-only">
                       Question {questionIndex + 1}: {question.question}
@@ -771,11 +887,11 @@ export default function CourseRoom({
                 )}
                 <div className="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
                   <span className="text-center text-[11px] text-slate-500 sm:text-left dark:text-slate-400">
-                    {answeredCount === quizQuestions.length
-                      ? "All questions answered. Ready to submit."
-                      : `Answer ${
-                          quizQuestions.length - answeredCount
-                        } more to continue.`}
+                    {isMarathon
+                      ? `${answeredCount} of ${quizQuestions.length} answered. Unanswered items count as incorrect.`
+                      : answeredCount === quizQuestions.length
+                        ? "All questions answered. Ready to submit."
+                        : `Answer ${quizQuestions.length - answeredCount} more to continue.`}
                   </span>
                   <button
                     style={PRIMARY_BUTTON_STYLE}
@@ -783,7 +899,7 @@ export default function CourseRoom({
                     onClick={submitQuiz}
                     disabled={submittingQuiz}
                   >
-                    {submittingQuiz ? "Grading..." : "Submit answers"}
+                    {submittingQuiz ? "Grading..." : isMarathon ? "Submit Marathon Quiz" : "Submit answers"}
                     {!submittingQuiz && (
                       <ArrowRight
                         style={PRIMARY_BUTTON_STYLE}
@@ -840,15 +956,15 @@ export default function CourseRoom({
                       ) : (
                         <CircleX size={14} />
                       )}
-                      {quizPassed ? "Assessment passed" : "Keep practicing"}
+                      {quizPassed ? "Assessment passed" : quizResult?.timedOut ? "Time expired" : "Keep practicing"}
                     </span>
                     <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl dark:text-white">
                       {quizPassed ? "Great work!" : "You are making progress"}
                     </h2>
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                       {quizPassed
-                        ? "The next lesson is now available."
-                        : "Review the lesson and try the assessment again."}
+                        ? isMarathon ? "Marathon requirement passed. Meet the course XP requirement to request your certificate." : "The next lesson is now available."
+                        : isMarathon ? quizResult?.timedOut ? "Time expired. Unanswered questions counted as incorrect; retry with a fresh set." : "Review the course and try a fresh set of questions." : "Review the lesson and try the assessment again."}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/80 bg-white/80 px-4 py-3 text-center shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
@@ -856,7 +972,7 @@ export default function CourseRoom({
                       Quiz
                     </span>
                     <strong className="mt-1 block text-xl text-slate-900 dark:text-white">
-                      #{String(safeIndex + 1).padStart(2, "0")}
+                      {isMarathon ? "Marathon" : `#${String(safeIndex + 1).padStart(2, "0")}`}
                     </strong>
                   </div>
                 </div>
@@ -878,7 +994,7 @@ export default function CourseRoom({
                     },
                     {
                       label: "Pass mark",
-                      value: "60%",
+                      value: "75%",
                       tone: "text-slate-900 dark:text-white",
                     },
                     {
@@ -932,14 +1048,14 @@ export default function CourseRoom({
                     <button
                       style={PRIMARY_BUTTON_STYLE}
                       className={`${primary} w-full sm:w-auto`}
-                      onClick={startQuiz}
+                      onClick={() => (isMarathon ? startMarathon() : startQuiz())}
                     >
                       <RotateCcw
                         style={PRIMARY_BUTTON_STYLE}
                         className="text-white"
                         size={17}
                       />
-                      Retry quiz
+                      {isMarathon ? "Retry Marathon Quiz" : "Retry quiz"}
                     </button>
                   )}
                   <button

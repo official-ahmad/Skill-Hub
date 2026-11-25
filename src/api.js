@@ -46,10 +46,27 @@ export const saveProgress = (courseId, completedLessons) =>
     method: "PUT",
     body: JSON.stringify({ completedLessons }),
   });
-export const submitLessonQuiz = (courseId, lessonIndex, submittedAnswers) =>
+export const startLessonQuiz = (courseId, lessonIndex, attemptId = "") =>
+  api(`/progress/${encodeURIComponent(courseId)}/lessons/${lessonIndex}/quiz/start`, {
+    method: "POST",
+    body: JSON.stringify(attemptId ? { attemptId } : {}),
+  });
+export const submitLessonQuiz = (courseId, lessonIndex, attemptId, submittedAnswers) =>
   api(`/progress/${encodeURIComponent(courseId)}/lessons/${lessonIndex}/quiz`, {
     method: "POST",
-    body: JSON.stringify({ submittedAnswers }),
+    body: JSON.stringify({ attemptId, submittedAnswers }),
+  });
+export const getMarathonStatus = (courseId) =>
+  api(`/progress/${encodeURIComponent(courseId)}/marathon`);
+export const startMarathonQuiz = (courseId, attemptId = "") =>
+  api(`/progress/${encodeURIComponent(courseId)}/marathon/start`, {
+    method: "POST",
+    body: JSON.stringify(attemptId ? { attemptId } : {}),
+  });
+export const submitMarathonQuiz = (courseId, attemptId, submittedAnswers) =>
+  api(`/progress/${encodeURIComponent(courseId)}/marathon/submit`, {
+    method: "POST",
+    body: JSON.stringify({ attemptId, submittedAnswers }),
   });
 export const saveNote = (courseId, lessonIndex, text) =>
   api(`/progress/${encodeURIComponent(courseId)}/notes/${lessonIndex}`, {
