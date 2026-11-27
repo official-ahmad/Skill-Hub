@@ -121,6 +121,6 @@ export const creatorChannels = {
 };
 
 export const getCreatorChannel = (course) =>
-  course?.instructorUrl
-    ? { url: course.instructorUrl, verified: Boolean(course.instructorUrlVerified) }
+  course?.instructorChannelUrl || course?.instructorUrl
+    ? { url: course.instructorChannelUrl || course.instructorUrl, verified: Boolean(course.instructorVerified || course.instructorUrlVerified) }
     : creatorChannels[course?.by || course?.instructor] || { url: "", verified: false };

@@ -2,6 +2,9 @@ import { useState } from "react";
 import { ArrowLeft, Check, LockKeyhole, Play } from "lucide-react";
 import CourseIcon from "../CourseIcon";
 import InstructorAvatar from "../InstructorAvatar";
+import VerifiedBadge from "../VerifiedBadge";
+import { getLessonCount } from "../../utils/courseUtils";
+import { getCreatorChannel } from "../data/assetMappings";
 
 const TABS = ["Overview", "Course content", "Instructor"];
 
@@ -127,11 +130,11 @@ export default function CourseDetail({
         : [],
     ];
   });
+  const total = Math.max(lessons.length, getLessonCount(course));
   const rawDone = Number(userProgress?.[courseId] || 0);
   const done = Number.isFinite(rawDone)
-    ? Math.min(Math.max(0, Math.trunc(rawDone)), lessons.length)
+    ? Math.min(Math.max(0, Math.trunc(rawDone)), total)
     : 0;
-  const total = lessons.length;
   const percent = total ? Math.round((done / total) * 100) : 0;
   const finished = total > 0 && done >= total;
   const quizCount = lessons.filter((lesson) => lesson[2].length > 0).length;
@@ -145,6 +148,8 @@ export default function CourseDetail({
   const instructor = typeof course.by === "string" && course.by.trim()
     ? course.by
     : "Skillhub Instructor";
+  const instructorVerified = Boolean(course.instructorVerified || course.instructorUrlVerified || getCreatorChannel(course).verified);
+  const instructorChannel = getCreatorChannel(course);
   const initials = instructor
     .split(" ")
     .filter(Boolean)
@@ -183,11 +188,12 @@ export default function CourseDetail({
             <InstructorAvatar
               key={instructor}
               instructor={instructor}
+              course={course}
               initials={initials}
               className="instructor-avatar-inline"
             />
             <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
-              {instructor} · <span className="tabular-nums">{total}</span> lessons
+              <span className="inline-flex items-center gap-1.5">{instructor}{instructorVerified && <VerifiedBadge />}</span> · <span className="tabular-nums">{total}</span> lessons
             </p>
           </div>
           <button
@@ -328,16 +334,18 @@ export default function CourseDetail({
                 <InstructorAvatar
                   key={instructor}
                   instructor={instructor}
+                  course={course}
                   initials={initials}
                   className="instructor-avatar-large"
                 />
                 <div>
                   <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                    {instructor}
+                    <span className="inline-flex items-center gap-1.5">{instructor}{instructorVerified && <VerifiedBadge />}</span>
                   </p>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
                     Course instructor
                   </p>
+                  {instructorChannel.url && <a className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-sky-700 hover:underline dark:text-sky-300" href={instructorChannel.url} target="_blank" rel="noreferrer">YouTube channel</a>}
                 </div>
               </section>
             )}

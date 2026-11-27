@@ -1,4 +1,5 @@
 import CourseIcon from "../CourseIcon";
+import { getLessonCount } from "../../utils/courseUtils";
 import { ArrowRight, BookOpen, Check, Layers, SearchX } from "lucide-react";
 
 const levels = {
@@ -48,8 +49,7 @@ export default function CoursesCatalog({
   onSelectCourse,
 }) {
   const progress = userProgress || {};
-  const lessonCountOf = (course) =>
-    Number(course.lessonCount || course.v?.length || 0);
+  const lessonCountOf = getLessonCount;
   const ratioOf = (course) => {
     const count = lessonCountOf(course);
     return count ? (progress[course.id] || 0) / count : 0;

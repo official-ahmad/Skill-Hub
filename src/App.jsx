@@ -35,6 +35,7 @@ import QueriesPage from "./components/pages/QueriesPage";
 import VerificationPage from "./components/pages/VerificationPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { getSafeErrorMessage } from "./utils/errorMessage";
+import { getLessonCount } from "./utils/courseUtils";
 
 const validRoomViews = new Set(["watch", "quiz", "marathon", "no_quiz", "result"]);
 
@@ -68,7 +69,10 @@ function mapCourse(course) {
     ? course.lessons
     : Array.isArray(course.v)
       ? course.v
-      : [];
+      : Array.isArray(course.course?.lessons)
+        ? course.course.lessons
+        : [];
+  const lessonCount = getLessonCount(course);
   return {
     ...course,
     id: String(course._id ?? course.id ?? ""),
@@ -89,6 +93,8 @@ function mapCourse(course) {
       : typeof course.by === "string"
         ? course.by
         : "SkillHub",
+    lessonCount,
+    totalLessons: lessonCount,
     v: lessons.map(normalizeLesson),
   };
 }

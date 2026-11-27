@@ -8,6 +8,7 @@ import {
   Trophy,
 } from "lucide-react";
 import CourseIcon from "../CourseIcon";
+import { getLessonCount } from "../../utils/courseUtils";
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-teal-400 dark:focus-visible:ring-offset-zinc-950";
@@ -18,8 +19,7 @@ const card =
 const interactive = `${card} text-left transition-colors duration-150 ease-out hover:border-zinc-950/25 hover:bg-zinc-50 active:scale-[0.99] dark:hover:border-white/25 dark:hover:bg-zinc-800/60 ${focusRing}`;
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-const lessonsOf = (course) =>
-  Number(course.lessonCount || course.v?.length || 0);
+const lessonsOf = getLessonCount;
 
 /* Column template shared by the list header and every list row so they align */
 const LIST_COLS =

@@ -25,6 +25,7 @@ import {
   submitCertificateQuiz,
 } from "../../api";
 import { getSafeErrorMessage } from "../../utils/errorMessage";
+import { getLessonCount } from "../../utils/courseUtils";
 
 const card =
   "rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900";
@@ -133,8 +134,7 @@ export default function Profile({
     };
   }, []);
 
-  const lessonCountOf = (course) =>
-    Number(course.lessonCount || course.v?.length || 0);
+  const lessonCountOf = getLessonCount;
 
   const totalLessons = courses.reduce(
     (sum, course) => sum + lessonCountOf(course),

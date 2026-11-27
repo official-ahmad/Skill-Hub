@@ -133,6 +133,15 @@ export const getAdminSession = () => {
 export const createAdminUser = (user) => adminApi("/users", { method: "POST", body: jsonBody(user) });
 export const createCourse = (course) => adminApi("/courses", { method: "POST", body: jsonBody(course) });
 export const updateCourse = (id, course) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "PATCH", body: jsonBody(course) });
+export const resolveYouTubeCourse = (videoOrPlaylistUrl, uploadType, title = "") =>
+  adminApi("/courses/resolve-youtube", {
+    method: "POST",
+    body: jsonBody({ videoOrPlaylistUrl, uploadType, title }),
+  });
+export const resolveYouTubeInstructor = (url) =>
+  adminApi("/courses/resolve-instructor", { method: "POST", body: jsonBody({ url }) });
+export const bulkCreateCourses = (courses) =>
+  adminApi("/courses/bulk", { method: "POST", body: jsonBody({ courses }) });
 export const deleteCourse = (id) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const getTechnologies = async () => {
   const response = await fetch(`${API_URL}/technologies`);

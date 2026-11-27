@@ -16,10 +16,11 @@ function makeInitials(name) {
 
 export default function InstructorAvatar({
   instructor,
+  course,
   initials,
   className = "",
 }) {
-  const candidates = getInstructorPhotoCandidates(instructor);
+  const candidates = getInstructorPhotoCandidates(course || instructor);
   const [candidateIndex, setCandidateIndex] = useState(0);
   const [failed, setFailed] = useState(false);
   const fallback = initials || makeInitials(instructor);
