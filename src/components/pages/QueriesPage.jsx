@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MessageSquareText, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import { getNotifications, sendQuery } from "../../api";
+import { getSafeErrorMessage } from "../../utils/errorMessage";
 
 export default function QueriesPage() {
   const [message, setMessage] = useState("");
@@ -11,7 +12,7 @@ export default function QueriesPage() {
     try {
       setNotifications(await getNotifications());
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -22,7 +23,7 @@ export default function QueriesPage() {
         if (active) setNotifications(data);
       })
       .catch((error) => {
-        if (active) toast.error(error.message);
+        if (active) toast.error(getSafeErrorMessage(error));
       });
     return () => {
       active = false;
@@ -37,7 +38,7 @@ export default function QueriesPage() {
       await load();
       toast.success("Query sent to administration");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 

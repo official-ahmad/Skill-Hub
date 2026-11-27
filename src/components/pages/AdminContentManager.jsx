@@ -12,6 +12,7 @@ import {
   updateCourse,
   updateTechnology,
 } from "../../api";
+import { getSafeErrorMessage } from "../../utils/errorMessage";
 
 const blankCourse = {
   id: "",
@@ -59,7 +60,7 @@ export default function AdminContentManager() {
       setCourses(courseList);
       setTechnologies(techList);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -74,7 +75,7 @@ export default function AdminContentManager() {
         setTechnologies(techList);
       })
       .catch((error) => {
-        if (active) toast.error(error.message);
+        if (active) toast.error(getSafeErrorMessage(error));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -110,7 +111,7 @@ export default function AdminContentManager() {
       setEditingCourse(null);
       await load();
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -148,7 +149,7 @@ export default function AdminContentManager() {
       toast.success("Course deleted");
       await load();
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -165,7 +166,7 @@ export default function AdminContentManager() {
       setEditingTechnology(null);
       await load();
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -195,7 +196,7 @@ export default function AdminContentManager() {
       toast.success("Technology deleted");
       await load();
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 

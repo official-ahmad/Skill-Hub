@@ -24,6 +24,7 @@ import {
   getCertificates,
   submitCertificateQuiz,
 } from "../../api";
+import { getSafeErrorMessage } from "../../utils/errorMessage";
 
 const card =
   "rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900";
@@ -111,7 +112,7 @@ export default function Profile({
     try {
       setCertificateData(await getCertificates());
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -122,7 +123,7 @@ export default function Profile({
         if (active) setCertificateData(data);
       })
       .catch((error) => {
-        if (active) toast.error(error.message);
+        if (active) toast.error(getSafeErrorMessage(error));
       })
       .finally(() => {
         if (active) setCertificatesLoaded(true);
@@ -208,7 +209,7 @@ export default function Profile({
       });
       setSelectedAnswer(null);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -232,7 +233,7 @@ export default function Profile({
       closeQuiz();
       await loadCertificates();
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -242,7 +243,7 @@ export default function Profile({
       toast.success("Certificate request sent to administration");
       await loadCertificates();
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -253,7 +254,7 @@ export default function Profile({
       await onUpdateProfile({ className });
       toast.success("University details saved");
     } catch (error) {
-      toast.error(error.message || "Could not save changes");
+      toast.error(getSafeErrorMessage(error, "Could not save changes"));
     } finally {
       setSaving(false);
     }

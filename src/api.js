@@ -1,3 +1,5 @@
+import { getSafeErrorMessage } from "./utils/errorMessage";
+
 const configuredApiUrl = String(import.meta.env.VITE_API_URL || "")
   .trim()
   .replace(/\/+$/, "");
@@ -7,6 +9,22 @@ if (!configuredApiUrl) {
 export const API_BASE_URL = configuredApiUrl.replace(/\/api$/i, "");
 const API_URL = `${API_BASE_URL}/api`;
 const TOKEN_KEY = "sh_token";
+
+function jsonBody(data) {
+  try {
+    return JSON.stringify(data, (_key, value) => {
+      if (!value || typeof value !== "object") return value;
+      const isDomNode = typeof globalThis.Node !== "undefined" && value instanceof globalThis.Node;
+      const isDomEvent = typeof globalThis.Event !== "undefined" && value instanceof globalThis.Event;
+      const isReactEvent = "nativeEvent" in value && ("target" in value || "currentTarget" in value);
+      if (isDomNode || isDomEvent || isReactEvent)
+        throw new TypeError("UI events and DOM elements cannot be sent as request data.");
+      return value;
+    });
+  } catch {
+    throw new TypeError("Request data must contain only plain, serializable values.");
+  }
+}
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const saveToken = (token) => localStorage.setItem(TOKEN_KEY, token);
@@ -22,7 +40,9 @@ export async function api(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(data.error || `Request failed (${response.status})`);
+    const error = new Error(
+      getSafeErrorMessage(data.error, `Request failed (${response.status})`),
+    );
     error.status = response.status;
     throw error;
   }
@@ -30,48 +50,54 @@ export async function api(path, options = {}) {
 }
 
 export const apiLogin = (credential) =>
-  api("/auth/google", { method: "POST", body: JSON.stringify({ credential }) });
+  api("/auth/google", { method: "POST", body: jsonBody({ credential }) });
 export const logoutUser = () => api("/auth/logout", { method: "POST" });
 export const getMe = () => api("/auth/me");
 export const updateProfile = (profile) =>
-  api("/auth/profile", { method: "PATCH", body: JSON.stringify(profile) });
+  api("/auth/profile", { method: "PATCH", body: jsonBody(profile) });
 export const getCourses = () => api("/courses");
 export const getCourse = (courseId) =>
   api(`/courses/${encodeURIComponent(courseId)}`);
 export const getProgress = () => api("/progress");
 export const migrateLegacyProgress = (data) =>
-  api("/progress/migrate", { method: "POST", body: JSON.stringify(data) });
+  api("/progress/migrate", { method: "POST", body: jsonBody(data) });
 export const saveProgress = (courseId, completedLessons) =>
   api(`/progress/${encodeURIComponent(courseId)}`, {
     method: "PUT",
-    body: JSON.stringify({ completedLessons }),
+    body: jsonBody({ completedLessons }),
   });
+const quizAttemptBody = (attemptId) =>
+  jsonBody(
+    typeof attemptId === "string" && attemptId.trim()
+      ? { attemptId: attemptId.trim() }
+      : {},
+  );
 export const startLessonQuiz = (courseId, lessonIndex, attemptId = "") =>
   api(`/progress/${encodeURIComponent(courseId)}/lessons/${lessonIndex}/quiz/start`, {
     method: "POST",
-    body: JSON.stringify(attemptId ? { attemptId } : {}),
+    body: quizAttemptBody(attemptId),
   });
 export const submitLessonQuiz = (courseId, lessonIndex, attemptId, submittedAnswers) =>
   api(`/progress/${encodeURIComponent(courseId)}/lessons/${lessonIndex}/quiz`, {
     method: "POST",
-    body: JSON.stringify({ attemptId, submittedAnswers }),
+    body: jsonBody({ attemptId, submittedAnswers }),
   });
 export const getMarathonStatus = (courseId) =>
   api(`/progress/${encodeURIComponent(courseId)}/marathon`);
 export const startMarathonQuiz = (courseId, attemptId = "") =>
   api(`/progress/${encodeURIComponent(courseId)}/marathon/start`, {
     method: "POST",
-    body: JSON.stringify(attemptId ? { attemptId } : {}),
+    body: quizAttemptBody(attemptId),
   });
 export const submitMarathonQuiz = (courseId, attemptId, submittedAnswers) =>
   api(`/progress/${encodeURIComponent(courseId)}/marathon/submit`, {
     method: "POST",
-    body: JSON.stringify({ attemptId, submittedAnswers }),
+    body: jsonBody({ attemptId, submittedAnswers }),
   });
 export const saveNote = (courseId, lessonIndex, text) =>
   api(`/progress/${encodeURIComponent(courseId)}/notes/${lessonIndex}`, {
     method: "PUT",
-    body: JSON.stringify({ text }),
+    body: jsonBody({ text }),
   });
 export const resetProgress = () => api("/progress", { method: "DELETE" });
 export const getLeaderboard = () => api("/students/leaderboard");
@@ -98,15 +124,15 @@ export async function adminApi(path, options = {}) {
 export const adminLogin = (adminId, password) =>
   adminApi("/login", {
     method: "POST",
-    body: JSON.stringify({ adminId, password }),
+    body: jsonBody({ adminId, password }),
   });
 export const getAdminSession = () => {
   if (!localStorage.getItem("sh_admin_token")) return Promise.resolve(null);
   return adminApi("/session");
 };
-export const createAdminUser = (user) => adminApi("/users", { method: "POST", body: JSON.stringify(user) });
-export const createCourse = (course) => adminApi("/courses", { method: "POST", body: JSON.stringify(course) });
-export const updateCourse = (id, course) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(course) });
+export const createAdminUser = (user) => adminApi("/users", { method: "POST", body: jsonBody(user) });
+export const createCourse = (course) => adminApi("/courses", { method: "POST", body: jsonBody(course) });
+export const updateCourse = (id, course) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "PATCH", body: jsonBody(course) });
 export const deleteCourse = (id) => adminApi(`/courses/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const getTechnologies = async () => {
   const response = await fetch(`${API_URL}/technologies`);
@@ -114,8 +140,8 @@ export const getTechnologies = async () => {
   if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
   return data;
 };
-export const createTechnology = (technology) => adminApi("/technologies", { method: "POST", body: JSON.stringify(technology) });
-export const updateTechnology = (id, technology) => adminApi(`/technologies/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(technology) });
+export const createTechnology = (technology) => adminApi("/technologies", { method: "POST", body: jsonBody(technology) });
+export const updateTechnology = (id, technology) => adminApi(`/technologies/${encodeURIComponent(id)}`, { method: "PATCH", body: jsonBody(technology) });
 export const deleteTechnology = (id) => adminApi(`/technologies/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const getAdminOverview = () => adminApi("/overview");
 export const getAdminUsers = (options = {}) => {
@@ -131,12 +157,12 @@ export const getAdminUsers = (options = {}) => {
 export const toggleUserSuspension = (id, isSuspended) =>
   adminApi(`/users/${encodeURIComponent(id)}/suspend`, {
     method: "PATCH",
-    body: JSON.stringify({ isSuspended }),
+    body: jsonBody({ isSuspended }),
   });
 export const updateAdminUser = (id, user) =>
   adminApi(`/users/${encodeURIComponent(id)}`, {
     method: "PATCH",
-    body: JSON.stringify(user),
+    body: jsonBody(user),
   });
 export const deleteAdminUser = (id) =>
   adminApi(`/users/${encodeURIComponent(id)}`, {
@@ -148,28 +174,28 @@ export const getAdminQueries = () => adminApi("/queries");
 export const replyToQuery = (id, adminResponse) =>
   adminApi(`/queries/${encodeURIComponent(id)}`, {
     method: "PATCH",
-    body: JSON.stringify({ adminResponse }),
+    body: jsonBody({ adminResponse }),
   });
 export const adminLogout = () => adminApi("/logout", { method: "POST" });
 
 export const sendQuery = (message) =>
-  api("/queries", { method: "POST", body: JSON.stringify({ message }) });
+  api("/queries", { method: "POST", body: jsonBody({ message }) });
 export const getNotifications = () => api("/queries/notifications");
 export const getUserProgress = (id) => adminApi(`/users/${encodeURIComponent(id)}/progress`);
-export const resetUserProgress = (id, courseId) => adminApi(`/users/${encodeURIComponent(id)}/progress/reset`, { method: "POST", body: JSON.stringify(courseId ? { courseId } : {}) });
+export const resetUserProgress = (id, courseId) => adminApi(`/users/${encodeURIComponent(id)}/progress/reset`, { method: "POST", body: jsonBody(courseId ? { courseId } : {}) });
 export const getUserActivity = (id) => adminApi(`/users/${encodeURIComponent(id)}/activity`);
-export const bulkImportUsers = (users) => adminApi("/users/bulk-import", { method: "POST", body: JSON.stringify({ users }) });
+export const bulkImportUsers = (users) => adminApi("/users/bulk-import", { method: "POST", body: jsonBody({ users }) });
 export const getActiveAnnouncement = () => api("/announcements/active");
 export const getAdminAnnouncements = () => adminApi("/announcements");
-export const publishAnnouncement = (message) => adminApi("/announcements", { method: "POST", body: JSON.stringify({ message }) });
+export const publishAnnouncement = (message) => adminApi("/announcements", { method: "POST", body: jsonBody({ message }) });
 export const deactivateAnnouncement = (id) => adminApi(`/announcements/${encodeURIComponent(id)}/deactivate`, { method: "PATCH" });
 export const deleteAnnouncement = (id) => adminApi(`/announcements/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const deleteAdminQuery = (id) => adminApi(`/queries/${encodeURIComponent(id)}`, { method: "DELETE" });
-export const bulkDeleteAdminQueries = (ids) => adminApi("/queries/bulk-delete", { method: "POST", body: JSON.stringify({ ids }) });
+export const bulkDeleteAdminQueries = (ids) => adminApi("/queries/bulk-delete", { method: "POST", body: jsonBody({ ids }) });
 export const getCertificates = () => api("/certificates");
 export const getCertificateQuiz = (courseId) => api(`/certificates/quiz/${encodeURIComponent(courseId)}`);
 export const submitCertificateQuiz = (payload) =>
-  api("/certificates/quiz/complete", { method: "POST", body: JSON.stringify(payload) });
+  api("/certificates/quiz/complete", { method: "POST", body: jsonBody(payload) });
 export const requestCertificate = (courseId) =>
   api(`/certificates/request/${encodeURIComponent(courseId)}`, { method: "POST" });
 export const getAdminCertificateRequests = (status = "pending") =>

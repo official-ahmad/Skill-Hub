@@ -20,8 +20,41 @@ import {
   submitLessonQuiz,
   submitMarathonQuiz,
 } from "../../api";
+import { getSafeErrorMessage } from "../../utils/errorMessage";
 
 const PRIMARY_BUTTON_STYLE = { color: "#ffffff" };
+const ROOM_VIEW_STATES = new Set(["watch", "quiz", "marathon", "no_quiz", "result"]);
+
+function normalizeLessonEntry(entry) {
+  if (Array.isArray(entry)) {
+    return [
+      typeof entry[0] === "string" ? entry[0] : "Lesson",
+      typeof entry[1] === "string" ? entry[1] : "",
+      normalizeQuestions(entry[2]),
+    ];
+  }
+  if (entry && typeof entry === "object") {
+    return [
+      typeof entry.title === "string" ? entry.title : "Lesson",
+      typeof entry.video === "string" ? entry.video : "",
+      normalizeQuestions(entry.questions),
+    ];
+  }
+  return ["Lesson unavailable", "", []];
+}
+
+function normalizeQuestions(questions) {
+  if (!Array.isArray(questions)) return [];
+  return questions.flatMap((item) => {
+    if (Array.isArray(item)) {
+      if (typeof item[0] !== "string" || !Array.isArray(item[1])) return [];
+      return [[item[0], item[1].map((option) => String(option ?? ""))]];
+    }
+    if (item && typeof item === "object" && typeof item.question === "string" && Array.isArray(item.options))
+      return [[item.question, item.options.map((option) => String(option ?? ""))]];
+    return [];
+  });
+}
 
 async function imageToPngDataUrl(source, { circle = false, size = 512 } = {}) {
   if (!source || typeof Image === "undefined") return null;
@@ -112,13 +145,36 @@ export default function CourseRoom({
   onSaveNote,
   onNavigate,
 }) {
-  const lessons = Array.isArray(course?.v) ? course.v : [];
-  const initialCount = course ? userProgress?.[course.id] || 0 : 0;
+  const courseId = String(course?.id ?? course?._id ?? "");
+  const rawLessons = Array.isArray(course?.v)
+    ? course.v
+    : Array.isArray(course?.lessons)
+      ? course.lessons
+      : [];
+  const lessons = rawLessons.map(normalizeLessonEntry);
+  const rawProgress = Number(userProgress?.[courseId] || 0);
+  const initialCount = Number.isFinite(rawProgress)
+    ? Math.min(Math.max(0, Math.trunc(rawProgress)), Math.max(0, lessons.length - 1))
+    : 0;
   const activeRoomKey = "sh_active_course_room";
   const getSavedRoom = () => {
     try {
       const saved = JSON.parse(localStorage.getItem(activeRoomKey) || "null");
-      return saved?.courseId === course?.id ? saved : null;
+      if (
+        !saved ||
+        typeof saved !== "object" ||
+        saved.courseId !== courseId ||
+        !Number.isInteger(saved.index) ||
+        saved.index < 0 ||
+        saved.index >= lessons.length ||
+        !ROOM_VIEW_STATES.has(saved.viewState)
+      ) return null;
+      return {
+        courseId,
+        index: saved.index,
+        viewState: saved.viewState,
+        attemptId: typeof saved.attemptId === "string" ? saved.attemptId : "",
+      };
     } catch {
       return null;
     }
@@ -126,8 +182,8 @@ export default function CourseRoom({
   const savedRoom = getSavedRoom();
   const [currentIndex, setCurrentIndex] = useState(
     savedRoom?.index !== undefined
-      ? Math.min(savedRoom.index, Math.max(0, lessons.length - 1))
-      : Math.min(initialCount, Math.max(0, lessons.length - 1)),
+      ? savedRoom.index
+      : initialCount,
   );
   const [viewState, setViewState] = useState(
     ["quiz", "marathon", "no_quiz"].includes(savedRoom?.viewState)
@@ -154,14 +210,14 @@ export default function CourseRoom({
   const restoredQuiz = useRef(false);
 
   useEffect(() => {
-    if (!course) return;
+    if (!courseId) return;
     // The lesson selection is external to this form state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNoteText(userNotes?.[`${course.id}_${currentIndex}`] || "");
-  }, [currentIndex, course, userNotes]);
+    setNoteText(userNotes?.[`${courseId}_${currentIndex}`] || "");
+  }, [currentIndex, courseId, userNotes]);
 
   useEffect(() => {
-    if (!course) return;
+    if (!courseId) return;
     if (previousIndex.current !== currentIndex) {
       setSaveStatus("Saved");
       setViewState("watch");
@@ -170,16 +226,19 @@ export default function CourseRoom({
       setValidationError("");
       previousIndex.current = currentIndex;
     }
-  }, [currentIndex, course]);
+  }, [currentIndex, courseId]);
 
-  const safeIndex = Math.min(Math.max(0, currentIndex), lessons.length - 1);
-  const currentVideo = Array.isArray(lessons[safeIndex])
-    ? lessons[safeIndex]
-    : [];
+  const safeIndex = lessons.length
+    ? Math.min(Math.max(0, Number.isInteger(currentIndex) ? currentIndex : 0), lessons.length - 1)
+    : 0;
+  const currentVideo = lessons[safeIndex] || [];
 
-  const lessonTitle = currentVideo[0] ?? "";
-  const rawMedia = currentVideo[1] ?? "";
-  const completed = userProgress?.[course.id] || 0;
+  const lessonTitle = typeof currentVideo[0] === "string" ? currentVideo[0] : "Lesson unavailable";
+  const rawMedia = typeof currentVideo[1] === "string" ? currentVideo[1] : "";
+  const completedValue = Number(userProgress?.[courseId] || 0);
+  const completed = Number.isFinite(completedValue)
+    ? Math.min(Math.max(0, Math.trunc(completedValue)), lessons.length)
+    : 0;
   const isPlaylist = /^PL[\w-]{10,}$/.test(String(rawMedia));
   const videoId = isPlaylist
     ? String(rawMedia)
@@ -191,12 +250,12 @@ export default function CourseRoom({
     : `https://www.youtube-nocookie.com/embed/${videoId}`;
 
   useEffect(() => {
-    if (!course) return;
+    if (!courseId) return;
     try {
       localStorage.setItem(
         "sh_active_course_room",
         JSON.stringify({
-          courseId: course.id,
+          courseId,
           index: safeIndex,
           viewState,
           attemptId: quizAttemptId,
@@ -205,7 +264,7 @@ export default function CourseRoom({
     } catch {
       /* localStorage unavailable */
     }
-  }, [course, safeIndex, viewState, quizAttemptId]);
+  }, [courseId, safeIndex, viewState, quizAttemptId]);
 
   const shuffle = (items) => {
     const result = [...items];
@@ -253,33 +312,34 @@ export default function CourseRoom({
 
   const loadAttempt = async (mode, resumeAttemptId = "") => {
     setValidationError("");
+    const safeAttemptId = typeof resumeAttemptId === "string" ? resumeAttemptId : "";
     try {
       let attempt = mode === "marathon"
-        ? await startMarathonQuiz(course.id, resumeAttemptId)
-        : await startLessonQuiz(course.id, safeIndex, resumeAttemptId);
+        ? await startMarathonQuiz(courseId, safeAttemptId)
+        : await startLessonQuiz(courseId, safeIndex, safeAttemptId);
       if (attempt.status === "expired" && !attempt.result) {
         attempt = mode === "marathon"
-          ? await startMarathonQuiz(course.id)
-          : await startLessonQuiz(course.id, safeIndex);
+          ? await startMarathonQuiz(courseId)
+          : await startLessonQuiz(courseId, safeIndex);
       }
       installAttempt(attempt, mode);
     } catch (error) {
-      setValidationError(error.message || "Could not start the quiz. Please try again.");
+      setValidationError(getSafeErrorMessage(error, "Could not start the quiz. Please try again."));
     }
   };
 
   const startQuiz = async (resumeAttemptId = "") => {
     const questions = Array.isArray(currentVideo[2]) ? currentVideo[2] : [];
     if (!questions.length) {
-      if (completed === safeIndex) onUpdateProgress(course.id, safeIndex + 1);
+      if (completed === safeIndex) onUpdateProgress(courseId, safeIndex + 1);
       setViewState("no_quiz");
       return;
     }
-    await loadAttempt("lesson", resumeAttemptId);
+    await loadAttempt("lesson", typeof resumeAttemptId === "string" ? resumeAttemptId : "");
   };
 
   const startMarathon = async (resumeAttemptId = "") => {
-    await loadAttempt("marathon", resumeAttemptId);
+    await loadAttempt("marathon", typeof resumeAttemptId === "string" ? resumeAttemptId : "");
   };
 
   const submitQuiz = async () => {
@@ -303,19 +363,19 @@ export default function CourseRoom({
         };
       });
       const result = quizMode === "marathon"
-        ? await submitMarathonQuiz(course.id, quizAttemptId, submittedAnswers)
-        : await submitLessonQuiz(course.id, safeIndex, quizAttemptId, submittedAnswers);
+        ? await submitMarathonQuiz(courseId, quizAttemptId, submittedAnswers)
+        : await submitLessonQuiz(courseId, safeIndex, quizAttemptId, submittedAnswers);
       setScorePercent(result.scorePercent);
       setQuizPassed(result.passed);
       setQuizResult(result);
       setQuizSubmitted(true);
       if (quizMode === "marathon" && result.passed) setMarathonPassed(true);
       if (result.passed && result.completedLessons > completed)
-        onUpdateProgress(course.id, result.completedLessons, false);
+        onUpdateProgress(courseId, result.completedLessons, false);
       setViewState("result");
     } catch (error) {
       setValidationError(
-        error.message || "Quiz submission failed. Please retry.",
+        getSafeErrorMessage(error, "Quiz submission failed. Please retry."),
       );
     } finally {
       setSubmittingQuiz(false);
@@ -323,17 +383,17 @@ export default function CourseRoom({
   };
 
   useEffect(() => {
-    if (!course || marathonStatusLoaded) return;
-    getMarathonStatus(course.id)
+    if (!courseId || marathonStatusLoaded) return;
+    getMarathonStatus(courseId)
       .then((status) => setMarathonPassed(Boolean(status.passed)))
       .catch(() => {})
       .finally(() => setMarathonStatusLoaded(true));
-  }, [course, marathonStatusLoaded]);
+  }, [courseId, marathonStatusLoaded]);
 
   useEffect(() => {
     if (
       restoredQuiz.current ||
-      !course ||
+      !courseId ||
       !["quiz", "marathon"].includes(savedRoom?.viewState)
     ) return;
     restoredQuiz.current = true;
@@ -469,7 +529,7 @@ export default function CourseRoom({
     const summary = [
       {
         label: "Course",
-        value: `${course.t || "Course"} (${course.id || "-"})`,
+        value: `${course?.t || "Course"} (${courseId || "-"})`,
       },
       {
         label: quizMode === "marathon" ? "Course Assessment" : "Lesson & Quiz",
@@ -589,7 +649,7 @@ export default function CourseRoom({
     }
 
     const reportScope = quizMode === "marathon" ? "marathon" : safeIndex + 1;
-    const filename = `skillhub-quiz-${String(course.id || "course").replace(
+    const filename = `skillhub-quiz-${String(courseId || "course").replace(
       /[^\w-]/g,
       "-",
     )}-${reportScope}.pdf`;
@@ -597,10 +657,10 @@ export default function CourseRoom({
   };
 
   const saveLessonNote = (event) => {
-    const value = event.target.value;
+    const value = typeof event?.target?.value === "string" ? event.target.value : "";
     setNoteText(value);
     setSaveStatus("Saving");
-    onSaveNote(course.id, safeIndex, value);
+    onSaveNote(courseId, safeIndex, value);
     window.clearTimeout(saveLessonNote.timeout);
     saveLessonNote.timeout = window.setTimeout(
       () => setSaveStatus("Saved"),
@@ -608,7 +668,29 @@ export default function CourseRoom({
     );
   };
 
-  if (!course || !lessons.length) return null;
+  if (!courseId || !lessons.length) {
+    return (
+      <section className="mx-auto grid min-h-[45vh] w-full max-w-2xl content-center justify-items-center rounded-3xl border border-amber-200 bg-white p-6 text-center shadow-lg dark:border-amber-900/50 dark:bg-slate-950 sm:p-10">
+        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+          <CircleX size={26} />
+        </span>
+        <h1 className="mt-5 text-xl font-bold text-slate-950 dark:text-white">
+          Course content is unavailable
+        </h1>
+        <p className="mt-2 max-w-lg break-words text-sm leading-6 text-slate-600 dark:text-slate-300">
+          {course?.t || course?.title || "This course"} doesn’t have a valid lesson list right now. Go back to Courses or reload to try again.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button type="button" className="button-secondary" onClick={onBackToDetails}>
+            <ArrowLeft size={16} /> Back to Courses
+          </button>
+          <button type="button" className="button-primary" onClick={() => window.location.reload()}>
+            <RotateCcw size={16} /> Reload page
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   const secondary =
     "inline-flex min-h-10 sm:min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3.5 sm:px-4 text-xs sm:text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-100 active:scale-[0.98] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 shrink-0";
@@ -631,7 +713,7 @@ export default function CourseRoom({
 
       <header className="min-w-0">
         <p className="truncate text-[11px] sm:text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600 dark:text-indigo-300">
-          {course.t}
+          {course?.t || course?.title || "Course"}
         </p>
         <h1 className="mt-1 sm:mt-2 break-words text-lg sm:text-2xl font-bold leading-snug">
           {lessonTitle}
@@ -675,7 +757,7 @@ export default function CourseRoom({
             <>
               <div className="aspect-video w-full max-h-[58vh] overflow-hidden rounded-2xl border border-slate-200 bg-black dark:border-slate-800">
                 <iframe
-                  key={`${course.id}-${safeIndex}-${videoId}`}
+                  key={`${courseId}-${safeIndex}-${videoId}`}
                   className="h-full w-full"
                   src={embedUrl}
                   title={lessonTitle}
@@ -687,7 +769,7 @@ export default function CourseRoom({
                 <button
                   style={PRIMARY_BUTTON_STYLE}
                   className={primary}
-                  onClick={startQuiz}
+                  onClick={() => startQuiz()}
                 >
                   <Check
                     style={PRIMARY_BUTTON_STYLE}
@@ -1104,7 +1186,7 @@ export default function CourseRoom({
               const isCurrent = index === safeIndex;
               return (
                 <button
-                  key={`${course.id}-${index}`}
+                  key={`${courseId}-${index}`}
                   disabled={isLocked}
                   className={`flex min-h-10 sm:min-h-11 w-full min-w-0 items-center gap-2 rounded-xl px-2.5 sm:px-3 text-left text-xs sm:text-sm ${
                     isCurrent

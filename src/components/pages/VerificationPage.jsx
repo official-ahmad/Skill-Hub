@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BadgeCheck, CalendarDays, Printer, ShieldX } from "lucide-react";
 import { verifyCertificate } from "../../api";
+import { getSafeErrorMessage } from "../../utils/errorMessage";
 
 const serif = {
   fontFamily: "'Playfair Display', 'Georgia', 'Times New Roman', serif",
@@ -74,7 +75,7 @@ export default function VerificationPage({ certificateId }) {
         if (active) setResult(data);
       })
       .catch((item) => {
-        if (active) setError(item.message);
+        if (active) setError(getSafeErrorMessage(item, "Certificate could not be verified."));
       });
     return () => {
       active = false;

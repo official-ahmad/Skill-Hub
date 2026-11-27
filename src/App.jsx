@@ -33,6 +33,65 @@ import {
 import AdminDashboard from "./components/pages/AdminDashboard";
 import QueriesPage from "./components/pages/QueriesPage";
 import VerificationPage from "./components/pages/VerificationPage";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { getSafeErrorMessage } from "./utils/errorMessage";
+
+const validRoomViews = new Set(["watch", "quiz", "marathon", "no_quiz", "result"]);
+
+function normalizeLesson(lesson) {
+  const isTuple = Array.isArray(lesson);
+  const title = isTuple ? lesson[0] : lesson?.title;
+  const video = isTuple ? lesson[1] : lesson?.video;
+  const questions = isTuple ? lesson[2] : lesson?.questions;
+  const safeQuestions = Array.isArray(questions)
+    ? questions.flatMap((question) => {
+        if (Array.isArray(question)) {
+          return typeof question[0] === "string" && Array.isArray(question[1])
+            ? [[question[0], question[1].map((option) => String(option ?? ""))]]
+            : [];
+        }
+        return question && typeof question.question === "string" && Array.isArray(question.options)
+          ? [[question.question, question.options.map((option) => String(option ?? ""))]]
+          : [];
+      })
+    : [];
+  return [
+    typeof title === "string" ? title : "Lesson unavailable",
+    typeof video === "string" ? video : "",
+    safeQuestions,
+  ];
+}
+
+function mapCourse(course) {
+  if (!course || typeof course !== "object") return null;
+  const lessons = Array.isArray(course.lessons)
+    ? course.lessons
+    : Array.isArray(course.v)
+      ? course.v
+      : [];
+  return {
+    ...course,
+    id: String(course._id ?? course.id ?? ""),
+    t: typeof course.title === "string"
+      ? course.title
+      : typeof course.t === "string"
+        ? course.t
+        : "Course",
+    cat: typeof course.category === "string"
+      ? course.category
+      : typeof course.cat === "string"
+        ? course.cat
+        : "General",
+    ic: course.icon || course.ic,
+    c: course.colorIndex ?? course.c ?? 0,
+    by: typeof course.instructor === "string"
+      ? course.instructor
+      : typeof course.by === "string"
+        ? course.by
+        : "SkillHub",
+    v: lessons.map(normalizeLesson),
+  };
+}
 
 export default function App() {
   const cachedProfile = (() => {
@@ -51,9 +110,23 @@ export default function App() {
   const initialRoom = (() => {
     if (!getToken()) return null;
     try {
-      return JSON.parse(
+      const saved = JSON.parse(
         localStorage.getItem("sh_active_course_room") || "null",
       );
+      if (
+        !saved ||
+        typeof saved.courseId !== "string" ||
+        !saved.courseId.trim() ||
+        !Number.isInteger(saved.index) ||
+        saved.index < 0 ||
+        !validRoomViews.has(saved.viewState)
+      ) return null;
+      return {
+        courseId: saved.courseId,
+        index: saved.index,
+        viewState: saved.viewState,
+        attemptId: typeof saved.attemptId === "string" ? saved.attemptId : "",
+      };
     } catch {
       return null;
     }
@@ -159,22 +232,7 @@ export default function App() {
     getCourses()
       .then((items) => {
         if (!active) return;
-        const mapped = items.map((course) => ({
-          ...course,
-          id: course._id,
-          t: course.title,
-          cat: course.category,
-          ic: course.icon,
-          c: course.colorIndex,
-          by: course.instructor,
-          v: Array.isArray(course.lessons)
-            ? course.lessons.map((lesson) => [
-                lesson.title,
-                lesson.video,
-                (lesson.questions || []).map((q) => [q.question, q.options]),
-              ])
-            : [],
-        }));
+        const mapped = items.map(mapCourse).filter(Boolean);
         setCourses(mapped);
         if (initialRoom?.courseId) {
           const found = mapped.find(
@@ -186,23 +244,7 @@ export default function App() {
             getCourse(found.id)
               .then((course) => {
                 if (!active) return;
-                setDetailedCourse({
-                  ...course,
-                  id: course._id,
-                  t: course.title,
-                  cat: course.category,
-                  ic: course.icon,
-                  c: course.colorIndex,
-                  by: course.instructor,
-                  v: (course.lessons || []).map((lesson) => [
-                    lesson.title,
-                    lesson.video,
-                    (lesson.questions || []).map((q) => [
-                      q.question,
-                      q.options,
-                    ]),
-                  ]),
-                });
+                setDetailedCourse(mapCourse(course));
               })
               .catch(() => {});
           } else {
@@ -212,7 +254,7 @@ export default function App() {
           }
         }
       })
-      .catch((error) => console.error("Could not load courses:", error));
+      .catch((error) => console.error("Could not load courses:", getSafeErrorMessage(error)));
     return () => {
       active = false;
     };
@@ -241,7 +283,7 @@ export default function App() {
         );
       })
       .catch((error) => {
-        console.warn("Session could not be restored:", error);
+        console.warn("Session could not be restored:", getSafeErrorMessage(error));
         if (error.status === 401) {
           clearToken();
           localStorage.removeItem("sh_user");
@@ -272,7 +314,7 @@ export default function App() {
           ),
         };
       } catch (error) {
-        console.warn("Legacy learning data could not be read:", error);
+        console.warn("Legacy learning data could not be read:", getSafeErrorMessage(error));
       }
     }
     saveToken(token);
@@ -284,8 +326,9 @@ export default function App() {
     setIsHydrating(false);
     const importData = previousUid
       ? migrateLegacyProgress(legacyData).catch((error) => {
-          if (!error.message.includes("already been imported"))
-            console.warn("Legacy learning data import failed:", error);
+          const message = getSafeErrorMessage(error);
+          if (!message.includes("already been imported"))
+            console.warn("Legacy learning data import failed:", message);
           return null;
         })
       : Promise.resolve(null);
@@ -295,7 +338,7 @@ export default function App() {
         setUserProgress(progress.progress || {});
         setUserNotes(progress.notes || {});
       })
-      .catch(console.error);
+      .catch((error) => console.error("Could not refresh progress:", getSafeErrorMessage(error)));
     getLeaderboard()
       .then((entries) => {
         setAllScoresCache(
@@ -305,7 +348,7 @@ export default function App() {
           Object.fromEntries(entries.map((entry) => [entry.id, entry])),
         );
       })
-      .catch(console.error);
+      .catch((error) => console.error("Could not refresh leaderboard:", getSafeErrorMessage(error)));
 
     setCurrentTab("home");
     try {
@@ -379,7 +422,7 @@ export default function App() {
     const performLogout = () => {
       logoutUser().catch((error) =>
         toast.error(
-          error.message || "Could not confirm logout with the server",
+          getSafeErrorMessage(error, "Could not confirm logout with the server"),
         ),
       );
       setCurrentUser(null);
@@ -475,22 +518,9 @@ export default function App() {
     setDetailedCourse(null);
     try {
       const course = await getCourse(courseId);
-      setDetailedCourse({
-        ...course,
-        id: course._id,
-        t: course.title,
-        cat: course.category,
-        ic: course.icon,
-        c: course.colorIndex,
-        by: course.instructor,
-        v: (course.lessons || []).map((lesson) => [
-          lesson.title,
-          lesson.video,
-          (lesson.questions || []).map((q) => [q.question, q.options]),
-        ]),
-      });
+      setDetailedCourse(mapCourse(course));
     } catch (error) {
-      toast.error(error.message || "Could not load course");
+      toast.error(getSafeErrorMessage(error, "Could not load course"));
     }
   };
 
@@ -523,7 +553,7 @@ export default function App() {
           Object.fromEntries(entries.map((entry) => [entry.id, entry])),
         ),
       )
-      .catch((err) => console.warn("Progress sync failed:", err));
+      .catch((err) => console.warn("Progress sync failed:", getSafeErrorMessage(err)));
   };
 
   const handleSaveNote = (courseId, index, text) => {
@@ -533,7 +563,7 @@ export default function App() {
     const updated = { ...userNotes, [key]: text };
     setUserNotes(updated);
     saveNote(courseId, index, text).catch((err) =>
-      console.warn("Note sync failed:", err),
+      console.warn("Note sync failed:", getSafeErrorMessage(err)),
     );
   };
 
@@ -549,7 +579,7 @@ export default function App() {
         toast.success("Learning progress reset");
       })
       .catch((error) =>
-        toast.error(error.message || "Could not reset progress"),
+        toast.error(getSafeErrorMessage(error, "Could not reset progress")),
       );
   };
 
@@ -690,6 +720,10 @@ export default function App() {
       )}
 
       <main className="mx-auto min-h-[calc(100vh-128px)] max-w-[1440px] px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <ErrorBoundary
+          key={selectedCourseId ? `course-${selectedCourseId}-${inCourseRoom ? "room" : "detail"}` : `tab-${currentTab}`}
+          onBack={() => handleNavigate("courses")}
+        >
         {selectedCourseId ? (
           inCourseRoom ? (
             <CourseRoom
@@ -790,6 +824,7 @@ export default function App() {
             {currentTab === "queries" && <QueriesPage />}
           </>
         )}
+        </ErrorBoundary>
       </main>
       <footer className="px-6 py-5 text-center text-xs text-slate-400 dark:text-slate-500">
         Skillhub Team

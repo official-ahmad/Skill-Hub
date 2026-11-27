@@ -42,6 +42,7 @@ import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 import AdminContentManager from "./AdminContentManager";
+import { getSafeErrorMessage } from "../../utils/errorMessage";
 
 /* Must match the key your main app uses for its theme toggle. */
 const THEME_KEY = "theme";
@@ -264,7 +265,7 @@ export default function AdminDashboard({ onExit }) {
         setUserPage(data.page ?? page);
         setUserTotalPages(data.totalPages ?? 1);
       } catch (error) {
-        toast.error(error.message);
+        toast.error(getSafeErrorMessage(error));
       } finally {
         setLoading(false);
       }
@@ -290,7 +291,7 @@ export default function AdminDashboard({ onExit }) {
       setQueries(queryData);
       await loadUsers(userPage);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -311,7 +312,7 @@ export default function AdminDashboard({ onExit }) {
         setQueries(queryData);
       })
       .catch((error) => {
-        if (active) toast.error(error.message);
+        if (active) toast.error(getSafeErrorMessage(error));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -386,7 +387,7 @@ export default function AdminDashboard({ onExit }) {
       const data = await getUserLogs(user._id);
       setLogs(data.logs);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -401,7 +402,7 @@ export default function AdminDashboard({ onExit }) {
       const data = await getUserActivity(user._id);
       setActivityDrawer({ ...data, profile: data.profile, loading: false });
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
       setActivityDrawer(null);
     }
   };
@@ -423,7 +424,7 @@ export default function AdminDashboard({ onExit }) {
       setActivityDrawer({ ...data, loading: false });
       toast.success(courseId ? "Course progress reset" : "All progress reset");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -439,7 +440,7 @@ export default function AdminDashboard({ onExit }) {
       setAnnouncementText("");
       toast.success("Notice published");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -453,7 +454,7 @@ export default function AdminDashboard({ onExit }) {
       );
       toast.success("Notice cleared");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -509,7 +510,7 @@ export default function AdminDashboard({ onExit }) {
       await refresh();
       toast.success(`Imported ${summary.createdCount} users`);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -583,7 +584,7 @@ export default function AdminDashboard({ onExit }) {
           : "Student account activated",
       );
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setActionLoadingId("");
     }
@@ -599,7 +600,7 @@ export default function AdminDashboard({ onExit }) {
       );
       toast.success("Response delivered");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -611,7 +612,7 @@ export default function AdminDashboard({ onExit }) {
       );
       toast.success("Certificate issued and badge approved");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -623,7 +624,7 @@ export default function AdminDashboard({ onExit }) {
       );
       toast.success("Certificate request rejected");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -642,7 +643,7 @@ export default function AdminDashboard({ onExit }) {
       setQueries((items) => items.filter((item) => item._id !== query._id));
       toast.success("Support query deleted");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     }
   };
 
@@ -659,7 +660,7 @@ export default function AdminDashboard({ onExit }) {
       setCreateUserForm(EMPTY_USER_FORM);
       toast.success(result.message || "User created");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -694,7 +695,7 @@ export default function AdminDashboard({ onExit }) {
       setEditUser(null);
       toast.success("User updated");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
       setActionLoadingId("");
@@ -722,7 +723,7 @@ export default function AdminDashboard({ onExit }) {
       setDeleteUserTarget(null);
       toast.success("User permanently deleted");
     } catch (error) {
-      toast.error(error.message);
+      toast.error(getSafeErrorMessage(error));
     } finally {
       setLoading(false);
       setActionLoadingId("");

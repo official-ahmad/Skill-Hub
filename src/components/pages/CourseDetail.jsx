@@ -101,19 +101,50 @@ export default function CourseDetail({
       </div>
     );
 
-  const done = userProgress[course.id] || 0;
-  const total = course.v.length;
+  const courseId = String(course.id ?? course._id ?? "");
+  const rawLessons = Array.isArray(course.v)
+    ? course.v
+    : Array.isArray(course.lessons)
+      ? course.lessons
+      : [];
+  const lessons = rawLessons.map((lesson) => {
+    const title = Array.isArray(lesson) ? lesson[0] : lesson?.title;
+    const video = Array.isArray(lesson) ? lesson[1] : lesson?.video;
+    const questions = Array.isArray(lesson) ? lesson[2] : lesson?.questions;
+    return [
+      typeof title === "string" ? title : "Lesson unavailable",
+      typeof video === "string" ? video : "",
+      Array.isArray(questions)
+        ? questions.flatMap((question) => {
+            if (Array.isArray(question))
+              return typeof question[0] === "string" && Array.isArray(question[1])
+                ? [[question[0], question[1]]]
+                : [];
+            return question && typeof question.question === "string" && Array.isArray(question.options)
+              ? [[question.question, question.options]]
+              : [];
+          })
+        : [],
+    ];
+  });
+  const rawDone = Number(userProgress?.[courseId] || 0);
+  const done = Number.isFinite(rawDone)
+    ? Math.min(Math.max(0, Math.trunc(rawDone)), lessons.length)
+    : 0;
+  const total = lessons.length;
   const percent = total ? Math.round((done / total) * 100) : 0;
   const finished = total > 0 && done >= total;
-  const quizCount = course.v.filter((l) => l[2]?.length).length;
-  const next = finished ? null : course.v[done];
+  const quizCount = lessons.filter((lesson) => lesson[2].length > 0).length;
+  const next = finished ? null : lessons[done];
   const ctaLabel =
     done === 0
       ? "Start course"
       : finished
       ? "Review course"
       : "Continue course";
-  const instructor = course.by || "Skillhub Instructor";
+  const instructor = typeof course.by === "string" && course.by.trim()
+    ? course.by
+    : "Skillhub Instructor";
   const initials = instructor
     .split(" ")
     .filter(Boolean)
@@ -146,7 +177,7 @@ export default function CourseDetail({
             </p>
           </div>
           <h1 className="mt-5 text-3xl font-medium tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
-            {course.t}
+            {typeof course.t === "string" ? course.t : "Course"}
           </h1>
           <div className="mt-3 flex min-w-0 items-center gap-2.5">
             <InstructorAvatar
@@ -161,7 +192,7 @@ export default function CourseDetail({
           </div>
           <button
             type="button"
-            onClick={() => onStartCourse(course.id)}
+              onClick={() => onStartCourse(courseId)}
             className={`button-primary mt-6 inline-flex h-11 items-center gap-2 rounded-lg px-5 text-sm font-semibold ${focusRing}`}
           >
             <Play size={16} strokeWidth={1.5} />
@@ -212,7 +243,7 @@ export default function CourseDetail({
                   About this course
                 </h2>
                 <p className="mt-2 max-w-prose leading-7 text-zinc-600 dark:text-zinc-300">
-                  Study {course.t} through a sequence of video lessons and short
+                Study {typeof course.t === "string" ? course.t : "this course"} through a sequence of video lessons and short
                   knowledge checks. Pass each quiz to record completion.
                 </p>
                 <dl className="mt-6 grid grid-cols-3 gap-4 border-t border-zinc-950/10 pt-6 dark:border-white/10">
@@ -238,7 +269,7 @@ export default function CourseDetail({
               <ol
                 className={`${card} divide-y divide-zinc-950/10 overflow-hidden dark:divide-white/10`}
               >
-                {course.v.map((lesson, index) => {
+                {lessons.length ? lessons.map((lesson, index) => {
                   const state =
                     index < done
                       ? "done"
@@ -271,12 +302,12 @@ export default function CourseDetail({
                   const rowClass =
                     "flex w-full items-center gap-4 px-5 py-4 text-left";
                   return (
-                    <li key={`${course.id}-${index}`}>
+                    <li key={`${courseId}-${index}`}>
                       {state === "current" ? (
                         <button
                           type="button"
                           aria-current="step"
-                          onClick={() => onStartCourse(course.id)}
+                          onClick={() => onStartCourse(courseId)}
                           className={`${rowClass} bg-zinc-50 transition-colors hover:bg-zinc-100 dark:bg-white/5 dark:hover:bg-white/10 ${focusRing}`}
                         >
                           {inner}
@@ -286,7 +317,9 @@ export default function CourseDetail({
                       )}
                     </li>
                   );
-                })}
+                }) : (
+                  <li className="p-5 text-sm text-zinc-500 dark:text-zinc-400">No lesson information is available.</li>
+                )}
               </ol>
             )}
 

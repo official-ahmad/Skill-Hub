@@ -17,8 +17,9 @@ export default function MaintenancePage() {
           Skillhub LMS is upgrading
         </h1>
         <p className="mt-3 leading-7 text-slate-600 dark:text-slate-300">
-          We are shifting the LMS to a new and improved platform. Course access
-          will return after the upgrade is complete.
+          AU SkillHub is currently undergoing maintenance to improve your
+          learning experience. Thanks for your patience while we get everything
+          ready.
         </p>
         <div className="mt-6 flex items-start gap-3 border-t border-slate-200 pt-5 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
           <CalendarClock className="mt-0.5 shrink-0" size={18} />
